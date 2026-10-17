@@ -3,26 +3,35 @@ info:
   title: Proofestra local API
   version: 0.1.0-draft
   summary: Planned personal self-hosted API; no endpoint is implemented.
-  description: |
-    Draft contract for the same-origin personal browser UI. No provider integrations
+  description: 'Draft contract for the same-origin personal browser UI. No provider integrations
+
     or runtime are implemented. Default origin is loopback; this session boundary
+
     is not public-service or multi-user authentication. Validate Host, disable CORS,
+
     and accept UTF-8 JSON with a maximum request body of 128 KiB. Every response,
+
     including errors and event streams, uses Cache-Control: no-store and X-Request-ID.
-    Live calls require server enablement, configured selected providers, and explicit
+
+    Live calls require server enablement, configured selected/allowlisted model profiles, and explicit
+
     execution_mode: live. Startup and metadata reads never call providers.
-  license:
-    name: Apache License 2.0
-    identifier: Apache-2.0
+
+
+    Agent identity is separate from provider/model. Repeated provider/profile roots and bounded internal subagents
+    are planned, not implemented. Runtime calls include child work and parent continuations.
+
+    '
+  license: {name: Apache License 2.0, identifier: Apache-2.0}
 servers:
-  - url: http://127.0.0.1:3000/api/v1
+- {url: 'http://127.0.0.1:3000/api/v1'}
 security:
-  - cookieAuth: []
+- cookieAuth: []
 tags:
-  - name: Session
-  - name: Providers
-  - name: Conversations
-  - name: Runs
+- {name: Session}
+- {name: Providers}
+- {name: Conversations}
+- {name: Runs}
 paths:
   /session:
     get:
@@ -49,8 +58,10 @@ paths:
     get:
       tags: [Providers]
       operationId: listProviders
-      summary: Read configured model IDs and masked readiness
-      description: Always returns all three providers; readiness is configuration status, not verified availability. No key values or provider requests.
+      summary: Read provider model-profile catalogs and masked readiness
+      description: Always returns all three providers, each with zero or more profiles. Repeated-provider agents
+        can select the same or different profile. Readiness is local configuration, not verified availability; delegation
+        capability requires adapter/profile compatibility checks. No key values or provider requests.
       responses:
         '200':
           description: Provider metadata and server live-mode enablement.
@@ -68,8 +79,8 @@ paths:
       operationId: listConversations
       summary: Page conversations by newest update, with UUID tie-break
       parameters:
-        - {$ref: '#/components/parameters/Cursor'}
-        - {$ref: '#/components/parameters/PageLimit'}
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
       responses:
         '200':
           description: Live view; updates can move records between pages.
@@ -87,10 +98,10 @@ paths:
       operationId: createConversation
       summary: Create a blank conversation
       security:
-        - cookieAuth: []
-          csrfToken: []
+      - cookieAuth: []
+        csrfToken: []
       parameters:
-        - {$ref: '#/components/parameters/Origin'}
+      - {$ref: '#/components/parameters/Origin'}
       requestBody:
         required: true
         content:
@@ -118,7 +129,7 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /conversations/{conversation_id}:
     parameters:
-      - {$ref: '#/components/parameters/ConversationId'}
+    - {$ref: '#/components/parameters/ConversationId'}
     get:
       tags: [Conversations]
       operationId: getConversation
@@ -139,12 +150,13 @@ paths:
       tags: [Conversations]
       operationId: deleteConversation
       summary: Delete a conversation and its associated local records
-      description: Returns 204 even for an absent valid UUID. Any active run in this conversation blocks deletion. Logical deletion is not forensic erasure of backups, SQLite pages, exports, or provider data.
+      description: Returns 204 even for an absent valid UUID. Any active run in this conversation blocks deletion.
+        Logical deletion is not forensic erasure of backups, SQLite pages, exports, or provider data.
       security:
-        - cookieAuth: []
-          csrfToken: []
+      - cookieAuth: []
+        csrfToken: []
       parameters:
-        - {$ref: '#/components/parameters/Origin'}
+      - {$ref: '#/components/parameters/Origin'}
       responses:
         '204': {$ref: '#/components/responses/NoContent'}
         '401': {$ref: '#/components/responses/Error'}
@@ -153,14 +165,14 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /conversations/{conversation_id}/messages:
     parameters:
-      - {$ref: '#/components/parameters/ConversationId'}
+    - {$ref: '#/components/parameters/ConversationId'}
     get:
       tags: [Conversations]
       operationId: listMessages
       summary: Page messages in stable chronological sequence
       parameters:
-        - {$ref: '#/components/parameters/Cursor'}
-        - {$ref: '#/components/parameters/PageLimit'}
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
       responses:
         '200':
           description: User prompts and final presentations; drafts remain run artifacts.
@@ -176,27 +188,38 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /conversations/{conversation_id}/runs:
     parameters:
-      - {$ref: '#/components/parameters/ConversationId'}
+    - {$ref: '#/components/parameters/ConversationId'}
     post:
       tags: [Runs]
       operationId: createRun
       summary: Atomically save prompt and configuration and enqueue one run
-      description: |
-        Resolve durable idempotency replay before the single global active-run guard.
+      description: 'Resolve durable idempotency replay before the single global active-run guard.
+
         Same conversation/key and normalized payload returns the original snapshot
+
         with 200, even after restart; changed payload returns 409 idempotency_conflict.
+
         A distinct request while any run is active returns 409 run_in_progress.
+
         Persist keys/digests for the conversation lifetime. Validate the entire
+
         request and live readiness before dispatch. Returns queued, not an answer.
+
+
+        Root agent IDs must be unique, but providers/profiles may repeat. Team permits 2–6 roots; Quick one. Validate
+        synthesizer/root membership, frozen delegation allowlist and cross-field limits before dispatch. Run admission
+        atomically snapshots the profiles, agents and delegation policy.
+
+        '
       security:
-        - cookieAuth: []
-          csrfToken: []
+      - cookieAuth: []
+        csrfToken: []
       parameters:
-        - {$ref: '#/components/parameters/Origin'}
-        - name: Idempotency-Key
-          in: header
-          required: true
-          schema: {type: string, format: uuid}
+      - {$ref: '#/components/parameters/Origin'}
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: {type: string, format: uuid}
       requestBody:
         required: true
         content:
@@ -204,13 +227,39 @@ paths:
             schema: {$ref: '#/components/schemas/RunCreate'}
             examples:
               mockTeam:
-                summary: Three-provider mock run, no paid calls
+                summary: 'Default three-root mock team: seven base calls, no paid requests'
                 value:
                   prompt: Compare these options and keep unsupported claims unresolved.
                   mode: team
                   execution_mode: mock
-                  providers: [openai, anthropic, gemini]
-                  synthesizer: openai
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1, name: First perspective, profile_id: openai-default}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2, name: Second perspective, profile_id: anthropic-default}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3, name: Third perspective, profile_id: gemini-default}
+                  synthesizer_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+              sameProviderTeam:
+                summary: Two distinct agents using one provider/profile are legal
+                value:
+                  prompt: Review the supplied reasoning from two perspectives.
+                  mode: team
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1, name: Analyst, profile_id: openai-default}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2, name: Skeptic, profile_id: openai-default,
+                    role: Challenge unsupported assumptions.}
+                  synthesizer_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+                  delegation:
+                    enabled: true
+                    allowed_profile_ids: []
+              quickWithHelpers:
+                summary: Explicit Quick helpers opt-in; base remains one unreviewed root call
+                value:
+                  prompt: Check this calculation using a bounded helper if useful.
+                  mode: quick
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1, name: Responder, profile_id: openai-default}
+                  delegation:
+                    enabled: true
+                    allowed_profile_ids: [anthropic-default]
       responses:
         '201': {$ref: '#/components/responses/RunCreated'}
         '200': {$ref: '#/components/responses/RunReplay'}
@@ -224,12 +273,14 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /runs/{run_id}:
     parameters:
-      - {$ref: '#/components/parameters/RunId'}
+    - {$ref: '#/components/parameters/RunId'}
     get:
       tags: [Runs]
       operationId: getRun
       summary: Read a run snapshot without starting or resuming work
-      description: A provider failure is snapshot data, not a retrieval HTTP 500. No raw vendor errors, HTTP traces, or private reasoning are exposed.
+      description: A provider/child failure or spawn denial is bounded snapshot data, not HTTP 500. Reads include
+        all agent lineage and exact invocation accounting without starting/resuming work. No keys, vendor debug
+        payloads or private reasoning.
       responses:
         '200': {$ref: '#/components/responses/RunSnapshot'}
         '401': {$ref: '#/components/responses/Error'}
@@ -237,20 +288,27 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /runs/{run_id}/cancellation:
     parameters:
-      - {$ref: '#/components/parameters/RunId'}
+    - {$ref: '#/components/parameters/RunId'}
     put:
       tags: [Runs]
       operationId: cancelRun
       summary: Request cancellation and return the current snapshot
-      description: |
-        Idempotent, bodyless operation. Atomically cancel active work; repeated calls
+      description: 'Idempotent, bodyless operation. Atomically cancel active work; repeated calls
+
         return the current terminal state. Completion may win the race. A canceled
+
         state cannot be replaced by late callbacks. Already-sent work may be billed.
+
+
+        Cancellation covers every descendant and pending continuation. Terminal roots also cancel unfinished descendants.
+        Release local slots; already-sent provider work may still be billed.
+
+        '
       security:
-        - cookieAuth: []
-          csrfToken: []
+      - cookieAuth: []
+        csrfToken: []
       parameters:
-        - {$ref: '#/components/parameters/Origin'}
+      - {$ref: '#/components/parameters/Origin'}
       responses:
         '200': {$ref: '#/components/responses/RunSnapshot'}
         '401': {$ref: '#/components/responses/Error'}
@@ -259,24 +317,35 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /runs/{run_id}/events:
     parameters:
-      - {$ref: '#/components/parameters/RunId'}
+    - {$ref: '#/components/parameters/RunId'}
     get:
       tags: [Runs]
       operationId: streamRunEvents
       summary: Replay durable bounded stage events using SSE
-      description: |
-        Read-only replay; disconnect never changes run state. IDs are increasing
+      description: 'Read-only replay; disconnect never changes run state. IDs are increasing
+
         decimal integers scoped to the run; absent Last-Event-ID replays after zero.
+
         Malformed, negative, or future IDs return 400 before opening the stream.
+
         Events live until conversation deletion. Close after run.finished; return
+
         204 if Last-Event-ID already equals that terminal event ID. Comment
+
         heartbeats have no ID. SSE event name equals EventEnvelope.type; data is
+
         JSON conforming to EventEnvelope. No raw token stream or hidden reasoning.
+
+
+        Agent/step events identify agent_id, step_id where relevant and parent/root/depth lineage; spawn.decided
+        exposes a bounded internal decision. Same provider can occur in many identities.
+
+        '
       parameters:
-        - name: Last-Event-ID
-          in: header
-          required: false
-          schema: {type: string, pattern: '^(0|[1-9][0-9]*)$'}
+      - name: Last-Event-ID
+        in: header
+        required: false
+        schema: {type: string, pattern: '^(0|[1-9][0-9]*)$'}
       responses:
         '200':
           description: SSE frames with durable numeric IDs and JSON event data.
@@ -286,11 +355,14 @@ paths:
           content:
             text/event-stream:
               schema: {type: string}
-              example: |
-                id: 4
-                event: step.updated
-                data: {"run_id":"11111111-1111-4111-8111-111111111111","sequence":4,"type":"step.updated","at":"2026-10-17T02:00:00Z","data":{"stage":"draft","provider":"openai","status":"completed"}}
+              example: 'id: 4
 
+                event: step.updated
+
+                data: {"run_id":"11111111-1111-4111-8111-111111111111","sequence":4,"type":"step.updated","at":"2026-10-17T02:00:00Z","data":{"agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","parent_agent_id":null,"root_agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","depth":0,"step_id":"cccccccc-cccc-4ccc-8ccc-ccccccccccc1","stage":"draft","provider":"openai","status":"waiting_for_children","attempts_dispatched":1,"run_attempts_dispatched":1}}
+
+
+                '
         '204': {$ref: '#/components/responses/NoContent'}
         '400': {$ref: '#/components/responses/Error'}
         '401': {$ref: '#/components/responses/Error'}
@@ -298,12 +370,15 @@ paths:
         default: {$ref: '#/components/responses/Error'}
   /conversations/{conversation_id}/export:
     parameters:
-      - {$ref: '#/components/parameters/ConversationId'}
+    - {$ref: '#/components/parameters/ConversationId'}
     get:
       tags: [Conversations]
       operationId: exportConversation
       summary: Export portable version-1 JSON after all conversation runs terminate
-      description: Contains user content; disclose before download. Excludes keys, cookies, CSRF tokens, raw HTTP payloads, infrastructure logs, and private reasoning. Any active run in this conversation returns 409. Import is outside MVP.
+      description: Contains user content; disclose before download. Excludes keys, cookies, CSRF tokens, raw HTTP
+        payloads, infrastructure logs, and private reasoning. Any active run in this conversation returns 409. Import
+        is outside MVP. Includes root/child lineage, concise tasks/results/spawn denials and all invocation accounting;
+        no hidden reasoning or raw provider tool payloads.
       responses:
         '200':
           description: Full logical conversation export, not a paginated list.
@@ -322,16 +397,10 @@ paths:
         default: {$ref: '#/components/responses/Error'}
 components:
   securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: proofestra_session
-      description: Local-browser HttpOnly SameSite=Strict session; Secure under HTTPS. Not multi-user authentication.
-    csrfToken:
-      type: apiKey
-      in: header
-      name: X-CSRF-Token
-      description: Required with cookieAuth on mutations; must match the bootstrapped session token. Also validate Origin.
+    cookieAuth: {type: apiKey, in: cookie, name: proofestra_session, description: Local-browser HttpOnly SameSite=Strict
+        session; Secure under HTTPS. Not multi-user authentication.}
+    csrfToken: {type: apiKey, in: header, name: X-CSRF-Token, description: Required with cookieAuth on mutations;
+        must match the bootstrapped session token. Also validate Origin.}
   headers:
     NoStore:
       required: true
@@ -348,7 +417,8 @@ components:
       name: Origin
       in: header
       required: true
-      description: Must exactly match the configured canonical origin, default http://127.0.0.1:3000. Never accept null or a wildcard.
+      description: Must exactly match the configured canonical origin, default http://127.0.0.1:3000. Never accept
+        null or a wildcard.
       schema: {type: string, format: uri}
     ConversationId:
       name: conversation_id
@@ -363,7 +433,8 @@ components:
     Cursor:
       name: cursor
       in: query
-      description: Opaque endpoint/conversation-scoped cursor. Invalid/deleted scope is 400; deletion invalidates associated cursors.
+      description: Opaque endpoint/conversation-scoped cursor. Invalid/deleted scope is 400; deletion invalidates
+        associated cursors.
       schema: {type: string, minLength: 1, maxLength: 2048}
     PageLimit:
       name: limit
@@ -371,14 +442,21 @@ components:
       schema: {type: integer, minimum: 1, maximum: 100, default: 20}
   responses:
     Error:
-      description: |
-        Standard safe error envelope. 400 malformed request/cursor/event ID;
+      description: 'Standard safe error envelope. 400 malformed request/cursor/event ID;
+
         401 missing session; 403 Host/origin/CSRF denied; 404 unknown parent/run;
+
         409 active-run or idempotency conflict; 413 body over 128 KiB;
+
         422 semantic validation/live readiness/context capacity; 429 local admission
+
         limiting; 500 unexpected internal error. Retry-After is required on 429.
+
         Field details never echo sensitive values. Default also covers these
+
         API-wide failures when not separately listed for an operation.
+
+        '
       headers:
         Cache-Control: {$ref: '#/components/headers/NoStore'}
         X-Request-ID: {$ref: '#/components/headers/RequestId'}
@@ -402,9 +480,11 @@ components:
                   code: context_too_large
                   message: The complete history cannot safely fit this team. Start a new conversation.
                   request_id: 22222222-2222-4222-8222-222222222222
-                  details: [{field: prompt, code: context_capacity_exceeded}]
+                  details:
+                  - {field: prompt, code: context_capacity_exceeded}
     RateLimited:
-      description: Local admission limit; preserve Idempotency-Key when retrying a start. No provider call has been admitted by this response.
+      description: Local admission limit; preserve Idempotency-Key when retrying a start. No provider call has been
+        admitted by this response.
       headers:
         Cache-Control: {$ref: '#/components/headers/NoStore'}
         X-Request-ID: {$ref: '#/components/headers/RequestId'}
@@ -459,22 +539,16 @@ components:
     ProviderConfig:
       type: object
       additionalProperties: false
-      required: [provider, readiness, model_id, safe_input_tokens]
+      required: [provider, profiles]
       properties:
         provider: {$ref: '#/components/schemas/Provider'}
-        readiness: {type: string, enum: [configured, missing]}
-        model_id: {type: [string, 'null'], minLength: 1, maxLength: 200}
-        safe_input_tokens: {type: [integer, 'null'], minimum: 1}
-      description: Missing means key, explicit model, or safe input/output mapping is absent; model_id is null when unconfigured. Live readiness needs a conservative local capacity. No key or verification call is returned.
-      allOf:
-        - if: {properties: {readiness: {const: configured}}, required: [readiness]}
-          then:
-            properties:
-              model_id: {type: string}
-              safe_input_tokens: {type: integer}
-          else:
-            properties:
-              model_id: {type: 'null'}
+        profiles:
+          type: array
+          items: {$ref: '#/components/schemas/ModelProfile'}
+          minItems: 0
+          maxItems: 100
+      description: One provider with zero or more configured profile definitions; profile IDs are globally unique
+        across the catalog. No discovery/provider calls occur here.
     ProviderList:
       type: object
       additionalProperties: false
@@ -483,10 +557,30 @@ components:
         live_enabled: {type: boolean}
         providers:
           type: array
+          items: {$ref: '#/components/schemas/ProviderConfig'}
           minItems: 3
           maxItems: 3
-          items: {$ref: '#/components/schemas/ProviderConfig'}
-          description: Exactly one entry for each provider enum.
+          allOf:
+          - contains:
+              properties:
+                provider: {const: openai}
+              required: [provider]
+            minContains: 1
+            maxContains: 1
+          - contains:
+              properties:
+                provider: {const: anthropic}
+              required: [provider]
+            minContains: 1
+            maxContains: 1
+          - contains:
+              properties:
+                provider: {const: gemini}
+              required: [provider]
+            minContains: 1
+            maxContains: 1
+      description: Exactly one entry per provider enum; any provider can offer multiple profiles. No credentials
+        or paid requests.
     Conversation:
       type: object
       additionalProperties: false
@@ -501,8 +595,12 @@ components:
       additionalProperties: false
       required: [items, next_cursor]
       properties:
-        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/Conversation'}}
-        next_cursor: {type: [string, 'null']}
+        items:
+          type: array
+          maxItems: 100
+          items: {$ref: '#/components/schemas/Conversation'}
+        next_cursor:
+          type: [string, 'null']
     Message:
       type: object
       additionalProperties: false
@@ -511,7 +609,9 @@ components:
         id: {type: string, format: uuid}
         conversation_id: {type: string, format: uuid}
         run_id: {type: string, format: uuid}
-        role: {type: string, enum: [user, assistant]}
+        role:
+          type: string
+          enum: [user, assistant]
         text: {type: string, maxLength: 65536}
         sequence: {type: integer, minimum: 1}
         created_at: {type: string, format: date-time}
@@ -520,76 +620,104 @@ components:
       additionalProperties: false
       required: [items, next_cursor]
       properties:
-        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/Message'}}
-        next_cursor: {type: [string, 'null']}
+        items:
+          type: array
+          maxItems: 100
+          items: {$ref: '#/components/schemas/Message'}
+        next_cursor:
+          type: [string, 'null']
     RunCreate:
       type: object
       additionalProperties: false
-      required: [prompt, mode, providers]
-      description: |
-        Quick requires exactly one provider and no synthesizer. Team requires 2–3
-        unique providers and a synthesizer among them. All selected live providers
-        need server keys and explicit models. Server snapshots model IDs; clients
-        cannot submit them. Default execution mode is mock. all_history_v1 freezes
-        all prior user/final-assistant messages plus this prompt once; never trim,
-        summarize, or truncate per provider. Conservatively preflight the smallest
-        configured safe input capacity, instructions, reserved output, and worst-case
-        review/synthesis peer artifacts. Reject 422 context_too_large before dispatch
-        if unsafe; advise a new conversation. Missing capacity rejects live readiness.
-        Unexpected later overflow preserves partial results, never silently trims.
-        Reject invalid cross-field limits before any provider request.
+      required: [prompt, mode, agents]
       properties:
         prompt: {type: string, minLength: 1, maxLength: 16000}
-        mode: {type: string, enum: [quick, team]}
-        execution_mode: {type: string, enum: [mock, live], default: mock}
-        providers:
+        mode:
+          type: string
+          enum: [quick, team]
+        execution_mode:
+          type: string
+          enum: [mock, live]
+          default: mock
+        agents:
           type: array
+          items: {$ref: '#/components/schemas/AgentDefinition'}
           minItems: 1
-          maxItems: 3
-          uniqueItems: true
-          items: {$ref: '#/components/schemas/Provider'}
-        synthesizer: {$ref: '#/components/schemas/Provider'}
+          maxItems: 6
+        synthesizer_agent_id:
+          type: [string, 'null']
+          format: uuid
+        delegation: {$ref: '#/components/schemas/DelegationInput'}
         limits: {$ref: '#/components/schemas/RunLimitsInput'}
+      description: Quick has exactly one root and no synthesizer (absent/null). Team has 2–6 roots and a synthesizer_agent_id
+        among them. Enforce unique agent_id values, membership and profile readiness in application validation;
+        repeated profiles/providers are valid. Clients send profile IDs, never model IDs, keys or lineage. Freeze
+        all_history_v1 once; no hidden truncation. Preflight base-stage capacities including bounded delegation
+        input. Reject invalid mode/limit/context/profile combinations with 422 before dispatch. Enable delegation
+        only for compatible profiles; alternate child profiles must be server-configured and explicitly allowlisted.
+        Quick helpers-off uses one call/no retry; helpers-on permits bounded dynamic invocations without root review/synthesis.
       allOf:
-        - if:
-            properties: {mode: {const: quick}}
+      - if:
+          properties:
+            mode: {const: quick}
+          required: [mode]
+        then:
+          properties:
+            agents: {maxItems: 1}
+            synthesizer_agent_id: {type: 'null'}
+        else:
+          required: [synthesizer_agent_id]
+          properties:
+            agents: {minItems: 2}
+            synthesizer_agent_id: {type: string, format: uuid}
+      - if:
+          allOf:
+          - properties:
+              mode: {const: quick}
             required: [mode]
-          then:
-            properties:
-              providers: {maxItems: 1}
-              limits:
-                properties:
-                  max_calls: {const: 1}
-                  max_retries_per_step: {const: 0}
-            not: {required: [synthesizer]}
-          else:
-            required: [synthesizer]
-            properties:
-              providers: {minItems: 2}
+          - not:
+              required: [delegation]
+              properties:
+                delegation:
+                  required: [enabled]
+                  properties:
+                    enabled: {const: true}
+        then:
+          properties:
+            limits:
+              properties:
+                max_calls: {const: 1}
+                max_retries_per_step: {const: 0}
     RunLimitsInput:
       type: object
       additionalProperties: false
-      description: |
-        Omitted fields use these defaults, except Quick max_calls=1 and retries=0.
-        Team defaults max_calls=9 and retries=1. Bounds are provisional local safety
-        ceilings. max_calls must cover nominal calls (Quick 1; Team 2n+1); total
-        output must cover nominal_calls * max_output_tokens_per_call; per-call
-        timeout must not exceed overall timeout. Reserve attempts/output before
-        scheduling; preserve remaining nominal-stage allowance before optional
-        retries. Only retry explicit safe rejections before generation. Never
-        retry ambiguous sent requests. Limits do not promise a monetary cap.
+      required: []
       properties:
-        max_calls: {type: integer, minimum: 1, maximum: 9}
+        max_calls: {type: integer, minimum: 1, maximum: 32}
         concurrency: {type: integer, minimum: 1, maximum: 3, default: 3}
-        overall_timeout_seconds: {type: integer, minimum: 15, maximum: 180, default: 180}
+        per_provider_concurrency: {type: integer, minimum: 1, maximum: 2, default: 2}
+        overall_timeout_seconds: {type: integer, minimum: 15, maximum: 300, default: 300}
         per_call_timeout_seconds: {type: integer, minimum: 5, maximum: 45, default: 45}
         max_output_tokens_per_call: {type: integer, minimum: 128, maximum: 2048, default: 2048}
-        total_output_tokens: {type: integer, minimum: 128, maximum: 16384, default: 16384}
+        total_output_tokens: {type: integer, minimum: 128, maximum: 65536, default: 65536}
         max_retries_per_step: {type: integer, minimum: 0, maximum: 1}
+        max_root_agents: {type: integer, minimum: 1, maximum: 6, default: 6}
+        max_total_agents: {type: integer, minimum: 1, maximum: 12, default: 12}
+        max_spawned_agents: {type: integer, minimum: 0, maximum: 6, default: 6}
+        max_children_per_agent: {type: integer, minimum: 0, maximum: 2, default: 2}
+        max_depth: {type: integer, minimum: 0, maximum: 2, default: 2}
+      description: Proposed ceilings/defaults. Team and explicit Quick delegation use max_calls=32/retries=1; Quick
+        without helpers uses max_calls=1/retries=0. All other omitted fields use their annotated defaults. Count
+        every dispatched initial, child, continuation and retry invocation. Validate calls/output accommodate the
+        base plan, roots fit max_root_agents/total, per-call deadline <= overall, and per-provider concurrency <=
+        global. Roots have depth 0. Accepted-child count is lifetime, not concurrent. Reserve unfinished required
+        root work before optional retries/delegation; no monetary cap is promised.
     RunLimits:
       allOf:
-        - {$ref: '#/components/schemas/RunLimitsInput'}
-        - required: [max_calls, concurrency, overall_timeout_seconds, per_call_timeout_seconds, max_output_tokens_per_call, total_output_tokens, max_retries_per_step]
+      - {$ref: '#/components/schemas/RunLimitsInput'}
+      - required: [max_calls, concurrency, per_provider_concurrency, overall_timeout_seconds, per_call_timeout_seconds,
+          max_output_tokens_per_call, total_output_tokens, max_retries_per_step, max_root_agents, max_total_agents,
+          max_spawned_agents, max_children_per_agent, max_depth]
     RunStatus:
       type: string
       enum: [queued, running, completed, partial, failed, canceled, interrupted]
@@ -598,42 +726,97 @@ components:
       enum: [completed, partial, failed, canceled, interrupted]
     StepStatus:
       type: string
-      enum: [queued, running, completed, failed, skipped, timed_out, canceled]
+      enum: [queued, running, waiting_for_children, completed, failed, skipped, timed_out, canceled, interrupted]
     AgentSnapshot:
       type: object
       additionalProperties: false
-      required: [provider, model_id, safe_input_tokens]
+      required: [agent_id, name, profile_id, role, provider, model_id, safe_input_tokens, delegation_capability,
+        parent_agent_id, root_agent_id, depth, task, child_agent_ids, status]
       properties:
+        agent_id: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 80}
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+        role:
+          type: [string, 'null']
+          maxLength: 500
         provider: {$ref: '#/components/schemas/Provider'}
         model_id: {type: string, minLength: 1, maxLength: 200}
         safe_input_tokens: {type: integer, minimum: 1}
-      description: Frozen explicit configured model ID for live; deterministic mock model ID in mock mode.
+        delegation_capability: {$ref: '#/components/schemas/DelegationCapability'}
+        parent_agent_id:
+          type: [string, 'null']
+          format: uuid
+        root_agent_id: {type: string, format: uuid}
+        depth: {type: integer, minimum: 0, maximum: 2}
+        task:
+          type: [string, 'null']
+          maxLength: 4000
+        child_agent_ids:
+          type: array
+          items: {type: string, format: uuid}
+          minItems: 0
+          maxItems: 2
+          uniqueItems: true
+        status: {$ref: '#/components/schemas/AgentStatus'}
+      description: Run-scoped runtime identity. Roots have parent null, root_agent_id=self, depth=0 and task=null;
+        children have an existing parent, inherited root ID, depth=parent+1 and bounded assigned task. Validate
+        acyclic same-run links, unique IDs, reciprocal child lists and lifetime quotas in application logic. Identical
+        provider/profile does not merge agents.
+      allOf:
+      - if:
+          properties:
+            parent_agent_id: {type: 'null'}
+          required: [parent_agent_id]
+        then:
+          properties:
+            depth: {const: 0}
+            task: {type: 'null'}
+        else:
+          properties:
+            depth: {minimum: 1}
+            task: {type: string, minLength: 1}
     ContextSnapshot:
       type: object
       additionalProperties: false
       required: [policy, message_ids, input_fit_status]
       properties:
         policy: {type: string, const: all_history_v1}
-        message_ids: {type: array, uniqueItems: true, items: {type: string, format: uuid}}
+        message_ids:
+          type: array
+          uniqueItems: true
+          items: {type: string, format: uuid}
         input_fit_status: {type: string, const: accepted}
         notice: {type: string, maxLength: 1000}
-      description: Frozen history plus current prompt; fit is a conservative local estimate, not guaranteed vendor token counting. Initial drafts never contain peer drafts.
+      description: Frozen all visible history plus current prompt; records the exact included message IDs. Fit is
+        a conservative local estimate, not guaranteed vendor counting. No hidden per-provider trimming. Children
+        reuse this history plus scoped task/authorized branch artifacts; drafting branches cannot see current peer-root
+        drafts. Recheck child/continuation capacity before dispatch.
     Usage:
       type: object
       additionalProperties: false
       required: [attempts_dispatched, input_tokens, output_tokens, reserved_output_tokens, accounting, estimated_cost_usd]
       properties:
-        attempts_dispatched: {type: integer, minimum: 0, maximum: 9}
-        input_tokens: {type: [integer, 'null'], minimum: 0}
-        output_tokens: {type: [integer, 'null'], minimum: 0}
-        reserved_output_tokens: {type: integer, minimum: 0, maximum: 16384}
-        accounting: {type: string, enum: [reported, conservative, unknown]}
-        estimated_cost_usd: {type: [number, 'null'], minimum: 0}
-        pricing_version: {type: [string, 'null'], maxLength: 200}
-      description: |
-        Missing usage stays null, never assumed zero. Retain output reservations
-        for uncertain/timed-out dispatched attempts. Cost is an estimate only;
-        unknown cost is null, not $0. Totals include all attempts and retries.
+        attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
+        input_tokens:
+          type: [integer, 'null']
+          minimum: 0
+        output_tokens:
+          type: [integer, 'null']
+          minimum: 0
+        reserved_output_tokens: {type: integer, minimum: 0, maximum: 65536}
+        accounting:
+          type: string
+          enum: [reported, conservative, unknown]
+        estimated_cost_usd:
+          type: [number, 'null']
+          minimum: 0
+        pricing_version:
+          type: [string, 'null']
+          maxLength: 200
+      description: Reported, conservative or unknown accounting across roots, descendants, parent continuations
+        and retries. Missing usage/cost stays null, never assumed zero. Retain output reservations for uncertain
+        sent/timed-out invocations. All aggregates include every dispatched invocation; estimated cost is not a
+        billing guarantee.
     NormalizedFailure:
       type: object
       additionalProperties: false
@@ -641,7 +824,8 @@ components:
       properties:
         code:
           type: string
-          enum: [authentication, rate_limited, model_unavailable, invalid_request, provider_unavailable, timeout, context_too_large, budget_exhausted, canceled, interrupted, unknown]
+          enum: [authentication, rate_limited, model_unavailable, invalid_request, provider_unavailable, timeout,
+            context_too_large, budget_exhausted, canceled, interrupted, unknown]
         message: {type: string, maxLength: 500}
       description: Safe concise message, never raw vendor response, secrets, or stack trace.
     Source:
@@ -657,100 +841,230 @@ components:
     Finding:
       type: object
       additionalProperties: false
-      required: [provider, text]
+      required: [agent_id, step_id, text]
       properties:
-        provider: {$ref: '#/components/schemas/Provider'}
+        agent_id: {type: string, format: uuid}
+        step_id: {type: string, format: uuid}
         text: {type: string, maxLength: 2000}
+      description: Concise model finding with identity/provenance, never private reasoning. IDs refer to the containing
+        run/step.
     StepSnapshot:
       type: object
       additionalProperties: false
-      required: [stage, provider, status, attempts, output, findings, sources, usage, failure]
+      required: [step_id, agent_id, stage, provider, status, attempts, invocations, output, findings, sources, usage,
+        failure]
       properties:
-        stage: {type: string, enum: [draft, review, synthesis]}
+        step_id: {type: string, format: uuid}
+        agent_id: {type: string, format: uuid}
+        stage:
+          type: string
+          enum: [draft, review, synthesis, helper]
         provider: {$ref: '#/components/schemas/Provider'}
         status: {$ref: '#/components/schemas/StepStatus'}
-        attempts: {type: integer, minimum: 0, maximum: 2}
-        output: {type: [string, 'null'], maxLength: 65536}
-        findings: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/Finding'}}
-        sources: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/Source'}}
+        attempts: {type: integer, minimum: 0, maximum: 32}
+        invocations:
+          type: array
+          items: {$ref: '#/components/schemas/InvocationSnapshot'}
+          minItems: 0
+          maxItems: 32
+        output:
+          type: [string, 'null']
+          maxLength: 65536
+        findings:
+          type: array
+          items: {$ref: '#/components/schemas/Finding'}
+          minItems: 0
+          maxItems: 20
+        sources:
+          type: array
+          items: {$ref: '#/components/schemas/Source'}
+          minItems: 0
+          maxItems: 20
         usage: {$ref: '#/components/schemas/Usage'}
         failure:
           oneOf:
-            - {$ref: '#/components/schemas/NormalizedFailure'}
-            - {type: 'null'}
-      description: Bounded concise artifacts only; review output is findings, never a hidden reasoning trace. Quick has at most one attempt.
+          - {$ref: '#/components/schemas/NormalizedFailure'}
+          - {type: 'null'}
+      description: Unique logical stage/task identity; provider alone never identifies a step. attempts equals dispatched
+        initial/continuation/retry invocations for this step. Parent waiting releases global/provider concurrency
+        slots while retaining reservations. All run invocation counts sum within max_calls. Helper steps are not
+        extra root reviews/votes; bounded final task results only, no tool payloads or private reasoning.
     RunSnapshot:
       type: object
       additionalProperties: false
-      required: [id, conversation_id, user_message_id, mode, execution_mode, status, agents, synthesizer, context, prompt_version, limits, planned_calls, steps, final_answer, presentation, limitations, usage, created_at, finished_at, last_event_sequence]
+      required: [id, conversation_id, user_message_id, mode, execution_mode, status, root_agent_ids, agents, synthesizer_agent_id,
+        delegation, context, prompt_version, limits, base_planned_calls, steps, spawn_decisions, final_answer, presentation,
+        limitations, usage, created_at, finished_at, last_event_sequence]
       properties:
         id: {type: string, format: uuid}
         conversation_id: {type: string, format: uuid}
         user_message_id: {type: string, format: uuid}
-        mode: {type: string, enum: [quick, team]}
-        execution_mode: {type: string, enum: [mock, live]}
+        mode:
+          type: string
+          enum: [quick, team]
+        execution_mode:
+          type: string
+          enum: [mock, live]
         status: {$ref: '#/components/schemas/RunStatus'}
-        agents: {type: array, minItems: 1, maxItems: 3, items: {$ref: '#/components/schemas/AgentSnapshot'}}
-        synthesizer:
-          oneOf:
-            - {$ref: '#/components/schemas/Provider'}
-            - {type: 'null'}
+        root_agent_ids:
+          type: array
+          items: {type: string, format: uuid}
+          minItems: 1
+          maxItems: 6
+          uniqueItems: true
+        agents:
+          type: array
+          items: {$ref: '#/components/schemas/AgentSnapshot'}
+          minItems: 1
+          maxItems: 12
+        synthesizer_agent_id:
+          type: [string, 'null']
+          format: uuid
+        delegation: {$ref: '#/components/schemas/DelegationPolicy'}
         context: {$ref: '#/components/schemas/ContextSnapshot'}
         prompt_version: {type: string, minLength: 1, maxLength: 100}
         limits: {$ref: '#/components/schemas/RunLimits'}
-        planned_calls: {type: integer, enum: [1, 5, 7]}
-        steps: {type: array, maxItems: 7, items: {$ref: '#/components/schemas/StepSnapshot'}}
-        final_answer: {type: [string, 'null'], maxLength: 65536}
-        presentation: {type: string, enum: [none, quick_unreviewed, team_synthesis, draft_fallback]}
-        limitations: {type: array, maxItems: 30, items: {type: string, maxLength: 1000}}
+        base_planned_calls:
+          type: integer
+          enum: [1, 5, 7, 9, 11, 13]
+        steps:
+          type: array
+          items: {$ref: '#/components/schemas/StepSnapshot'}
+          minItems: 0
+          maxItems: 19
+        spawn_decisions:
+          type: array
+          items: {$ref: '#/components/schemas/SpawnDecision'}
+          minItems: 0
+          description: Complete accepted/denied decisions under the run deadline and bounded model output; do not
+            truncate away denials in exports.
+        final_answer:
+          type: [string, 'null']
+          maxLength: 65536
+        presentation:
+          type: string
+          enum: [none, quick_unreviewed, team_synthesis, draft_fallback]
+        limitations:
+          type: array
+          items: {type: string, maxLength: 1000}
+          minItems: 0
+          maxItems: 100
         usage: {$ref: '#/components/schemas/Usage'}
         created_at: {type: string, format: date-time}
-        finished_at: {type: [string, 'null'], format: date-time}
+        finished_at:
+          type: [string, 'null']
+          format: date-time
         last_event_sequence: {type: integer, minimum: 1}
-      description: |
-        Completed means all planned workflow stages completed, not answer accuracy.
-        Any missing Team review, provider failure, or fallback is partial. Zero
-        drafts fails; one draft skips peer reviews and can synthesize partially.
-        Synthesis failure leaves labeled drafts, not an invented final answer.
-        Deadline aborts local work: partial with a draft, failed without. Canceled
-        stays canceled; restart marks active runs interrupted without auto-resume.
-        Active runs have null finished_at. Credentials/raw traces are never fields.
+      description: All root/descendant identities, tasks, bounded outputs and visible spawn denials belong in snapshot/export.
+        base_planned_calls describes root work only, not the dynamic total; actual usage counts every initial/child/continuation/retry
+        call. Root IDs, agent IDs and step/invocation IDs are unique in their scopes; links are acyclic and consistent.
+        Completed requires all required root and accepted-child work; any accepted child failure/missing Team stage/fallback
+        is partial, except cancel/interruption overrides. Zero successful root drafts fails; child outputs are not
+        substitute root votes. Denied optional spawns alone do not imply partial. Failed synthesizer is never silently
+        replaced. Cancellation/terminal roots cancel descendants; late callbacks cannot replace a terminal result.
+        Restart interrupts every unfinished run/agent/step without auto-resume. Active runs have null finished_at.
+        No credentials, hidden reasoning or vendor debug traces.
       examples:
-        - id: 11111111-1111-4111-8111-111111111111
-          conversation_id: 33333333-3333-4333-8333-333333333333
-          user_message_id: 44444444-4444-4444-8444-444444444444
-          mode: quick
-          execution_mode: mock
+      - id: 11111111-1111-4111-8111-111111111111
+        conversation_id: 33333333-3333-4333-8333-333333333333
+        user_message_id: 44444444-4444-4444-8444-444444444444
+        mode: quick
+        execution_mode: mock
+        status: completed
+        root_agent_ids: [aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1]
+        agents:
+        - agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          name: Responder
+          profile_id: openai-default
+          role: null
+          provider: openai
+          model_id: mock-openai-v1
+          safe_input_tokens: 32000
+          delegation_capability: supported
+          parent_agent_id: null
+          root_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          depth: 0
+          task: null
+          child_agent_ids: []
           status: completed
-          agents: [{provider: openai, model_id: mock-openai-v1, safe_input_tokens: 32000}]
-          synthesizer: null
-          context: {policy: all_history_v1, message_ids: [44444444-4444-4444-8444-444444444444], input_fit_status: accepted}
-          prompt_version: mock-v1
-          limits: {max_calls: 1, concurrency: 3, overall_timeout_seconds: 180, per_call_timeout_seconds: 45, max_output_tokens_per_call: 2048, total_output_tokens: 16384, max_retries_per_step: 0}
-          planned_calls: 1
-          steps:
-            - stage: draft
-              provider: openai
-              status: completed
-              attempts: 1
-              output: Simulated answer; no live model was called.
-              findings: []
-              sources: []
-              usage: {attempts_dispatched: 1, input_tokens: 12, output_tokens: 10, reserved_output_tokens: 0, accounting: reported, estimated_cost_usd: 0}
-              failure: null
-          final_answer: Simulated answer; no live model was called.
-          presentation: quick_unreviewed
-          limitations: [Unreviewed simulated response.]
-          usage: {attempts_dispatched: 1, input_tokens: 12, output_tokens: 10, reserved_output_tokens: 0, accounting: reported, estimated_cost_usd: 0}
-          created_at: '2026-10-17T02:00:00Z'
-          finished_at: '2026-10-17T02:00:01Z'
-          last_event_sequence: 3
+        synthesizer_agent_id: null
+        delegation:
+          enabled: false
+          allowed_profile_ids: []
+        context:
+          policy: all_history_v1
+          message_ids: [44444444-4444-4444-8444-444444444444]
+          input_fit_status: accepted
+        prompt_version: mock-v1
+        limits:
+          max_calls: 1
+          concurrency: 3
+          per_provider_concurrency: 2
+          overall_timeout_seconds: 300
+          per_call_timeout_seconds: 45
+          max_output_tokens_per_call: 2048
+          total_output_tokens: 65536
+          max_retries_per_step: 0
+          max_root_agents: 6
+          max_total_agents: 12
+          max_spawned_agents: 6
+          max_children_per_agent: 2
+          max_depth: 2
+        base_planned_calls: 1
+        steps:
+        - step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          stage: draft
+          provider: openai
+          status: completed
+          attempts: 1
+          invocations:
+          - invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+            kind: initial
+            retry_of_invocation_id: null
+            status: completed
+            usage:
+              attempts_dispatched: 1
+              input_tokens: 12
+              output_tokens: 10
+              reserved_output_tokens: 0
+              accounting: reported
+              estimated_cost_usd: 0
+            failure: null
+            started_at: '2026-10-17T02:00:00Z'
+            finished_at: '2026-10-17T02:00:01Z'
+            resumes_after_invocation_id: null
+          output: Simulated answer; no live model was called.
+          findings: []
+          sources: []
+          usage:
+            attempts_dispatched: 1
+            input_tokens: 12
+            output_tokens: 10
+            reserved_output_tokens: 0
+            accounting: reported
+            estimated_cost_usd: 0
+          failure: null
+        spawn_decisions: []
+        final_answer: Simulated answer; no live model was called.
+        presentation: quick_unreviewed
+        limitations: [Unreviewed simulated response; mock cost is zero because no provider requests occur.]
+        usage:
+          attempts_dispatched: 1
+          input_tokens: 12
+          output_tokens: 10
+          reserved_output_tokens: 0
+          accounting: reported
+          estimated_cost_usd: 0
+        created_at: '2026-10-17T02:00:00Z'
+        finished_at: '2026-10-17T02:00:01Z'
+        last_event_sequence: 3
     TerminalRunSnapshot:
       allOf:
-        - {$ref: '#/components/schemas/RunSnapshot'}
-        - properties:
-            status: {$ref: '#/components/schemas/TerminalStatus'}
-            finished_at: {type: string, format: date-time}
+      - {$ref: '#/components/schemas/RunSnapshot'}
+      - properties:
+          status: {$ref: '#/components/schemas/TerminalStatus'}
+          finished_at: {type: string, format: date-time}
     EventEnvelope:
       type: object
       additionalProperties: false
@@ -758,41 +1072,143 @@ components:
       properties:
         run_id: {type: string, format: uuid}
         sequence: {type: integer, minimum: 1}
-        type: {type: string, enum: [run.started, step.updated, run.finished]}
+        type:
+          type: string
+          enum: [run.started, agent.created, agent.updated, step.updated, spawn.decided, run.finished]
         at: {type: string, format: date-time}
         data: {type: object}
       allOf:
-        - if: {properties: {type: {const: run.started}}, required: [type]}
-          then:
-            properties:
-              data:
-                properties:
-                  status: {type: string, enum: [queued, running]}
-        - if: {properties: {type: {const: step.updated}}, required: [type]}
-          then:
-            properties:
-              data:
-                type: object
-                additionalProperties: false
-                required: [stage, provider, status]
-                properties:
-                  stage: {type: string, enum: [draft, review, synthesis]}
-                  provider: {$ref: '#/components/schemas/Provider'}
-                  status: {$ref: '#/components/schemas/StepStatus'}
-          else:
-            properties:
-              data:
-                type: object
-                additionalProperties: false
-                required: [status]
-                properties:
-                  status: {$ref: '#/components/schemas/RunStatus'}
-        - if: {properties: {type: {const: run.finished}}, required: [type]}
-          then:
-            properties:
-              data:
-                properties:
-                  status: {$ref: '#/components/schemas/TerminalStatus'}
+      - if:
+          properties:
+            type: {const: run.started}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [status, base_planned_calls]
+              properties:
+                status:
+                  type: string
+                  enum: [queued, running]
+                base_planned_calls:
+                  type: integer
+                  enum: [1, 5, 7, 9, 11, 13]
+      - if:
+          properties:
+            type: {const: agent.created}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [agent_id, parent_agent_id, root_agent_id, depth, status, name, profile_id, provider, task]
+              properties:
+                agent_id: {type: string, format: uuid}
+                parent_agent_id:
+                  type: [string, 'null']
+                  format: uuid
+                root_agent_id: {type: string, format: uuid}
+                depth: {type: integer, minimum: 0, maximum: 2}
+                status: {$ref: '#/components/schemas/AgentStatus'}
+                name: {type: string, minLength: 1, maxLength: 80}
+                profile_id: {$ref: '#/components/schemas/ProfileId'}
+                provider: {$ref: '#/components/schemas/Provider'}
+                task:
+                  type: [string, 'null']
+                  maxLength: 4000
+      - if:
+          properties:
+            type: {const: agent.updated}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [agent_id, parent_agent_id, root_agent_id, depth, status]
+              properties:
+                agent_id: {type: string, format: uuid}
+                parent_agent_id:
+                  type: [string, 'null']
+                  format: uuid
+                root_agent_id: {type: string, format: uuid}
+                depth: {type: integer, minimum: 0, maximum: 2}
+                status: {$ref: '#/components/schemas/AgentStatus'}
+                name: {type: string, minLength: 1, maxLength: 80}
+                profile_id: {$ref: '#/components/schemas/ProfileId'}
+                provider: {$ref: '#/components/schemas/Provider'}
+                task:
+                  type: [string, 'null']
+                  maxLength: 4000
+      - if:
+          properties:
+            type: {const: step.updated}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [agent_id, parent_agent_id, root_agent_id, depth, step_id, stage, provider, status, attempts_dispatched,
+                run_attempts_dispatched]
+              properties:
+                agent_id: {type: string, format: uuid}
+                parent_agent_id:
+                  type: [string, 'null']
+                  format: uuid
+                root_agent_id: {type: string, format: uuid}
+                depth: {type: integer, minimum: 0, maximum: 2}
+                step_id: {type: string, format: uuid}
+                stage:
+                  type: string
+                  enum: [draft, review, synthesis, helper]
+                provider: {$ref: '#/components/schemas/Provider'}
+                status: {$ref: '#/components/schemas/StepStatus'}
+                attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
+                output:
+                  type: [string, 'null']
+                  maxLength: 65536
+                usage: {$ref: '#/components/schemas/Usage'}
+                run_attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
+              description: Lineage and exact step/run dispatched counts. A completed helper update includes its
+                concise output and normalized usage; fetch the snapshot for full artifacts. No token-by-token stream
+                or hidden reasoning.
+              allOf:
+              - if:
+                  properties:
+                    stage: {const: helper}
+                    status: {const: completed}
+                  required: [stage, status]
+                then:
+                  required: [output, usage]
+                  properties:
+                    output: {type: string}
+      - if:
+          properties:
+            type: {const: spawn.decided}
+          required: [type]
+        then:
+          properties:
+            data: {$ref: '#/components/schemas/SpawnDecision'}
+      - if:
+          properties:
+            type: {const: run.finished}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [status, attempts_dispatched]
+              properties:
+                status: {$ref: '#/components/schemas/TerminalStatus'}
+                attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
+      description: Numeric SSE sequence is run-scoped. Agent/step events expose identity/lineage; spawn decisions
+        contain concise tasks and visible denials. No raw tool transcripts, token streams or hidden reasoning. Persist
+        transition+event atomically; terminal run.finished closes the stream.
     ConversationExport:
       type: object
       additionalProperties: false
@@ -801,8 +1217,15 @@ components:
         export_version: {type: integer, const: 1}
         exported_at: {type: string, format: date-time}
         conversation: {$ref: '#/components/schemas/Conversation'}
-        messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
-        runs: {type: array, items: {$ref: '#/components/schemas/TerminalRunSnapshot'}}
+        messages:
+          type: array
+          items: {$ref: '#/components/schemas/Message'}
+        runs:
+          type: array
+          items: {$ref: '#/components/schemas/TerminalRunSnapshot'}
+      description: Logical export includes all terminal run agent trees, concise child tasks/results/denials, base
+        plan and actual invocation accounting. Excludes credentials, cookies, CSRF tokens, debug payloads and hidden
+        reasoning. Not forensic erasure or import format.
     ErrorEnvelope:
       type: object
       additionalProperties: false
@@ -815,7 +1238,9 @@ components:
           properties:
             code:
               type: string
-              enum: [invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress, idempotency_conflict, body_too_large, validation_failed, context_too_large, live_disabled, provider_not_configured, rate_limited, internal_error]
+              enum: [invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress,
+                idempotency_conflict, body_too_large, validation_failed, context_too_large, live_disabled, rate_limited,
+                internal_error, profile_not_configured, delegation_not_supported]
             message: {type: string, maxLength: 500}
             request_id: {type: string, format: uuid}
             details:
@@ -828,3 +1253,222 @@ components:
                 properties:
                   field: {type: string, maxLength: 200}
                   code: {type: string, maxLength: 100}
+    ProfileId:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: ^[a-z][a-z0-9_-]{0,63}$
+      description: Stable server-configured model-profile slug; no client-supplied model IDs or keys.
+    DelegationCapability:
+      type: string
+      enum: [supported, unsupported, unverified]
+      description: supported means the adapter/profile internal delegation round trip was compatibility checked.
+        Configuration alone is not support; no vendor-native agent service is implied.
+    ModelProfile:
+      type: object
+      additionalProperties: false
+      required: [profile_id, model_id, safe_input_tokens, readiness, delegation_capability]
+      properties:
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+        model_id:
+          type: [string, 'null']
+          minLength: 1
+          maxLength: 200
+        safe_input_tokens:
+          type: [integer, 'null']
+          minimum: 1
+        readiness:
+          type: string
+          enum: [configured, missing]
+        delegation_capability: {$ref: '#/components/schemas/DelegationCapability'}
+      description: Catalog metadata only, never keys or a live availability assertion. Missing means credential,
+        model or conservative capacity mapping is absent. Multiple profiles may use one provider/model.
+      allOf:
+      - if:
+          properties:
+            readiness: {const: configured}
+          required: [readiness]
+        then:
+          properties:
+            model_id: {type: string}
+            safe_input_tokens: {type: integer}
+    AgentDefinition:
+      type: object
+      additionalProperties: false
+      required: [agent_id, name, profile_id]
+      properties:
+        agent_id: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 80}
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+        role: {type: string, minLength: 1, maxLength: 500}
+      description: Root identity is independent of provider/profile. Agent IDs must be unique within a run; repeated
+        profile/provider is allowed. Role text cannot expand permissions.
+    DelegationInput:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        enabled: {type: boolean}
+        allowed_profile_ids:
+          type: array
+          items: {$ref: '#/components/schemas/ProfileId'}
+          minItems: 0
+          maxItems: 100
+          uniqueItems: true
+      description: 'Defaults: Team enabled, Quick disabled; allowed_profile_ids empty. The allowlist grants alternate
+        child profiles only; inheritance uses the parent profile. Resolve and freeze permission at run admission.
+        Model text cannot expand it.'
+    DelegationPolicy:
+      allOf:
+      - {$ref: '#/components/schemas/DelegationInput'}
+      - required: [enabled, allowed_profile_ids]
+    AgentStatus:
+      type: string
+      enum: [queued, running, waiting_for_children, completed, failed, canceled, interrupted]
+    InvocationSnapshot:
+      type: object
+      additionalProperties: false
+      required: [invocation_id, kind, retry_of_invocation_id, resumes_after_invocation_id, status, usage, failure,
+        started_at, finished_at]
+      properties:
+        invocation_id: {type: string, format: uuid}
+        kind:
+          type: string
+          enum: [initial, continuation, retry]
+        retry_of_invocation_id:
+          type: [string, 'null']
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, completed, failed, timed_out, canceled, interrupted]
+        usage: {$ref: '#/components/schemas/Usage'}
+        failure:
+          oneOf:
+          - {$ref: '#/components/schemas/NormalizedFailure'}
+          - {type: 'null'}
+        started_at:
+          type: [string, 'null']
+          format: date-time
+        finished_at:
+          type: [string, 'null']
+          format: date-time
+        resumes_after_invocation_id:
+          type: [string, 'null']
+          format: uuid
+      description: One reserved/dispatched adapter call. A tool-request response can complete an invocation while
+        the step waits; a continuation is a new counted call. Schedule one logical continuation per parent invocation
+        response batch, never per duplicate callback; resumes_after_invocation_id identifies it. A bounded safe
+        retry may be a separate retry invocation of that continuation. At most one retry per logical step across
+        its entire initial/continuation sequence, only a known pre-generation rejection. Initial calls have null
+        retry/resume IDs; retries name the rejected invocation. Queued records do not count as dispatched. Cross-record
+        references stay in the same parent step/run.
+      allOf:
+      - if:
+          properties:
+            kind: {const: initial}
+          required: [kind]
+        then:
+          properties:
+            resumes_after_invocation_id: {type: 'null'}
+            retry_of_invocation_id: {type: 'null'}
+      - if:
+          properties:
+            kind: {const: continuation}
+          required: [kind]
+        then:
+          properties:
+            resumes_after_invocation_id: {type: string, format: uuid}
+            retry_of_invocation_id: {type: 'null'}
+      - if:
+          properties:
+            kind: {const: retry}
+          required: [kind]
+        then:
+          properties:
+            retry_of_invocation_id: {type: string, format: uuid}
+    SpawnRequest:
+      type: object
+      additionalProperties: false
+      required: [task]
+      properties:
+        task: {type: string, minLength: 1, maxLength: 4000}
+        name: {type: string, minLength: 1, maxLength: 80}
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+      description: Adapter-neutral internal spawn_subagent tool arguments, not a browser endpoint. Parent/run/step/tool-call
+        IDs come from trusted coordinator context, not model arguments. Omitted profile inherits parent; an alternate
+        must be preapproved in delegation.allowed_profile_ids. Model text cannot grant itself permissions.
+    SpawnDenialCode:
+      type: string
+      enum: [disabled, profile_not_allowed, depth_limit, agent_limit, child_limit, call_budget, output_budget, deadline,
+        context_too_large, invalid_request]
+      description: Safe visible policy/quota reason. Invalid/unready/incompatible profile, conflicting tool-call
+        payload or malformed arguments use invalid_request; no child is created.
+    SpawnDecision:
+      type: object
+      additionalProperties: false
+      required: [decision_id, run_id, parent_agent_id, step_id, parent_invocation_id, provider_tool_call_id, request,
+        effective_profile_id, status, child_agent_id, denial_code, notice, created_at]
+      properties:
+        decision_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        parent_agent_id: {type: string, format: uuid}
+        step_id: {type: string, format: uuid}
+        provider_tool_call_id: {type: string, minLength: 1, maxLength: 200}
+        request:
+          oneOf:
+          - {$ref: '#/components/schemas/SpawnRequest'}
+          - {type: 'null'}
+        effective_profile_id:
+          oneOf:
+          - {$ref: '#/components/schemas/ProfileId'}
+          - {type: 'null'}
+        status:
+          type: string
+          enum: [accepted, denied]
+        child_agent_id:
+          type: [string, 'null']
+          format: uuid
+        denial_code:
+          oneOf:
+          - {$ref: '#/components/schemas/SpawnDenialCode'}
+          - {type: 'null'}
+        notice: {type: string, maxLength: 1000}
+        created_at: {type: string, format: date-time}
+        parent_invocation_id: {type: string, format: uuid}
+      description: Durable bounded decision. Idempotency tuple is run,parent,step,parent_invocation_id,provider_tool_call_id
+        plus normalized request digest. Server derives ancestry/invocation IDs. Matching replays return the original
+        decision/child; changed payload is invalid_request without replacing the original or creating another child.
+        The same provider tool-call ID from another invocation is a new request subject to lifetime quotas. A malformed
+        request records request=null and a safe notice rather than raw arguments. Acceptance atomically reserves
+        child initial work, one logical parent continuation per response batch and remaining required root work.
+        Denial itself dispatches no call; a normal continuation still needs budget. Denial alone is not partial;
+        accepted-child failure is.
+      allOf:
+      - if:
+          properties:
+            status: {const: accepted}
+          required: [status]
+        then:
+          properties:
+            child_agent_id: {type: string, format: uuid}
+            denial_code: {type: 'null'}
+            effective_profile_id: {$ref: '#/components/schemas/ProfileId'}
+            request: {$ref: '#/components/schemas/SpawnRequest'}
+        else:
+          properties:
+            child_agent_id: {type: 'null'}
+            denial_code: {$ref: '#/components/schemas/SpawnDenialCode'}
+      examples:
+      - decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        run_id: 11111111-1111-4111-8111-111111111111
+        parent_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        provider_tool_call_id: call-helper-1
+        request: {task: Check the arithmetic in the supplied figures., name: Arithmetic helper}
+        effective_profile_id: openai-default
+        status: accepted
+        child_agent_id: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1
+        denial_code: null
+        notice: Accepted within the run limits; one child call and a parent continuation are reserved.
+        created_at: '2026-10-17T02:00:00Z'
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1

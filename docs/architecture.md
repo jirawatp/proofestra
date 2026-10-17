@@ -1,6 +1,6 @@
 # Architecture direction
 
-Proofestra is a planned, friendly chat application that lets a user assemble an AI team across model providers. Agents produce independent answers, review material disagreements, and help a synthesizer present an answer with evidence and remaining uncertainty.
+Proofestra is a planned, friendly chat application that lets a user assemble an AI team from the same or different model providers. Distinct agents produce initial answers, review disagreements, and help a synthesizer present an answer with evidence and uncertainty. Any eligible agent can request bounded subagents through Proofestra.
 
 This repository contains planning documents and a standalone simulated design prototype. No production app, provider integration, or verification system has been implemented. The proposed implementation stack, data model, and run semantics are recorded in the [technical design](technical-design.md). The [requirements](requirements.md) distinguish confirmed scope from design defaults.
 
@@ -18,6 +18,7 @@ This repository contains planning documents and a standalone simulated design pr
 | --- | --- |
 | Chat interface | Conversations, team configuration, progress, cancellation, and accessible answer presentation. |
 | Run coordinator | Run state, independent tasks, review stages, budgets, deadlines, and partial results. |
+| Agent tree coordinator | Stable agent identities, user-configured roots, nested helper admission, scoped context, parent return/resume, and tree-wide cancellation. |
 | Provider adapters | Consistent model invocation, capability reporting, normalized failures, and usage accounting. |
 | Evidence layer | Source metadata, claim-to-source links, citation verification status, and retrieval boundaries. |
 | Synthesis layer | Consolidated answers, concise review findings, disagreements, and uncertainty. |
@@ -36,6 +37,12 @@ The chat interface, orchestration, provider adapters, verification features, exp
 7. **Finish or stop:** Save the allowed result and usage summary. A canceled or incomplete run must be labeled accordingly.
 
 Start with one bounded review round. Additional review rounds should require an explicit configuration and remain within the same overall limits.
+
+Provider, model profile, and agent are separate concepts. Users can add multiple
+agents with identical or different profiles from one provider. A root or child
+may delegate within a run-wide allowlist, depth/node quotas, and shared limits.
+Helpers report to parents and do not become extra peer-review votes. All provider
+calls and parent continuations count. See [agents and subagents](agents.md).
 
 ## Evidence and evaluation records
 
