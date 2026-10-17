@@ -1,6 +1,6 @@
 # Architecture direction
 
-Proofestra is a planned, friendly chat application that lets a user assemble an AI team from the same or different model providers. Distinct agents produce initial answers, review disagreements, and help a synthesizer present an answer with evidence and uncertainty. Any eligible agent can request bounded subagents through Proofestra.
+Proofestra is a planned, friendly chat application that lets a user assemble an AI team from the same or different model providers. Distinct agents produce initial answers, review disagreements, and help a synthesizer present an answer with evidence and uncertainty. Eligible agents can request bounded subagents and automatically use compatible tools within the task's grants.
 
 This repository contains planning documents and a standalone simulated design prototype. No production app, provider integration, or verification system has been implemented. The proposed implementation stack, data model, and run semantics are recorded in the [technical design](technical-design.md). The [requirements](requirements.md) distinguish confirmed scope from design defaults.
 
@@ -20,6 +20,8 @@ This repository contains planning documents and a standalone simulated design pr
 | Run coordinator | Run state, independent tasks, review stages, budgets, deadlines, and partial results. |
 | Agent tree coordinator | Stable agent identities, user-configured roots, nested helper admission, scoped context, parent return/resume, and tree-wide cancellation. |
 | Provider adapters | Consistent model invocation, capability reporting, normalized failures, and usage accounting. |
+| Capability/tool registry and router | Versioned provider/profile/backend compatibility, filtered tool selection, readiness, destinations, and automatic scoped routing. |
+| Permission service and workers | Existing task grants, concrete missing-scope approvals, supervised SDK/CLI/MCP execution, and supported cancellation. |
 | Evidence layer | Source metadata, claim-to-source links, citation verification status, and retrieval boundaries. |
 | Synthesis layer | Consolidated answers, concise review findings, disagreements, and uncertainty. |
 | Storage and export | User-controlled conversation history, retention, portable exports, and self-hosting settings. |
@@ -41,8 +43,16 @@ Start with one bounded review round. Additional review rounds should require an 
 Provider, model profile, and agent are separate concepts. Users can add multiple
 agents with identical or different profiles from one provider. A root or child
 may delegate within a run-wide allowlist, depth/node quotas, and shared limits.
-Helpers report to parents and do not become extra peer-review votes. All provider
-calls and parent continuations count. See [agents and subagents](agents.md).
+Helpers report to parents and do not become extra peer-review votes. Observable
+provider requests, tool operations, and native jobs have separate ledgers; opaque
+internal work is explicitly unknown. See [agents and subagents](agents.md).
+
+Provider IDs and tool catalogs are extensible. The initial three API adapters are
+not a closed list. Tools may run on a provider's servers, in a controlled local
+executor, or through a registered SDK/CLI worker. Native tools are not interchangeable;
+route by tested capability and compatibility. Prefer the current profile's tool,
+then an approved capable helper/backend, without adding destinations or permissions.
+See [tool policy](tools.md) and [provider research](provider-capabilities.md).
 
 ## Evidence and evaluation records
 
@@ -52,12 +62,18 @@ Store useful operational records such as stage outcomes, concise findings, laten
 
 ## Reliability and control
 
-- Apply an overall run deadline plus per-call timeouts, output limits, maximum calls, and a cost or token budget. Cost estimates may differ from provider billing.
+- Apply finite deployment limits for managed agents, observed requests/tools, native jobs, deadlines, and output reservations. Report enforceable bounds and usage coverage; estimates may differ from provider billing.
 - Retry only bounded, eligible transient failures. Account for duplicate requests and avoid silently exceeding the budget.
 - Propagate cancellation to outstanding work where supported. Explain when a provider may still process an already-sent request.
 - Allow useful partial answers when an agent fails, while showing which agents and review steps completed. Never present a skipped review as completed verification.
 - Use explicit stage states such as queued, running, completed, failed, timed out, and canceled. Preserve enough state to explain an incomplete run.
 - Keep provider errors separate from answer-quality judgments. Provider availability should not be mistaken for evidence about correctness.
+- Reject opaque native routes when they cannot enforce a required bound. An explicitly permitted bounded job may have unknown internal usage; it is not one total model call.
+
+The earlier six-root and depth-two values are personal defaults. Advertise
+configurable server ceilings and reject workflows that cannot fit context or
+resource limits. Larger teams need bounded review graphs and synthesis stages;
+those extensions are designed separately in [scaling](scaling.md).
 
 ## Privacy and security direction
 
@@ -65,4 +81,10 @@ Before sending content, show which configured providers may receive the prompt, 
 
 Keep credentials on the server or in user-controlled secure storage, out of browser bundles, exported chats, and logs. Support minimum necessary context, configurable retention, deletion, and redaction. Self-hosting controls application storage; it does not prevent an external model provider from receiving enabled requests.
 
-Tools that can change external state should be a later, separately designed capability with clear user authorization. The first runnable slice should only generate and review text.
+The first runnable slice uses deterministic mocks. Live tools follow compatibility
+and permission fixtures. Matching task grants allow useful automatic work,
+including reversible workspace work. Missing scope pauses a concrete action for
+authorization; an agent cannot approve itself. Provider-hosted execution must be
+constrained before dispatch, and SDK/CLI workers need supported policy and auth
+integration. Stop prevents new local work and requests remote interruption; it
+does not reverse external effects or guarantee remote completion has stopped.

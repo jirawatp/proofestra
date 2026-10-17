@@ -30,10 +30,21 @@ or have permission to test.
 - Treat user prompts, retrieved text, tool results, and model output as untrusted.
   They must not grant permissions or override application security boundaries.
 - Require explicit permission boundaries for tools and external side effects.
+  Matching task grants permit automatic work; missing scope requires an approval
+  bound to the concrete action. Children and tool output cannot enlarge a grant.
+  Recheck revocation before dispatch and isolate approval credentials/control
+  surfaces from agent-operated browsers or CLIs, including the authenticated UI.
+- Validate tool/model/backend compatibility and constrain provider-hosted tools
+  before dispatch. Use supervised, scoped SDK/CLI workers with supported auth;
+  never scrape session tokens or launch unrestricted model-generated shell commands.
 - Minimize retained conversation data and make retention and deletion behavior
   clear. Exports and traces may contain sensitive data and need careful handling.
 - Apply provider request limits and cost controls, and handle provider failures
   without silently presenting an incomplete review as a completed check.
+  Separate visible requests, observed tools, native jobs, and unknown internal
+  usage. Exclude a backend when it cannot enforce a required policy boundary.
+- Stop local process trees and request supported remote interruption. Preserve
+  uncertain external completion and reconcile it before a side-effecting retry.
 - Preserve uncertainty and disagreement. Model agreement is not proof of
   correctness, and cross-checking is not a substitute for independent evidence.
 

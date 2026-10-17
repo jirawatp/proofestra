@@ -1,7 +1,7 @@
 # Experience design
 
 This proposes a personal, single-user, self-hosted Proofestra web app. OpenAI,
-Anthropic, and Gemini are supported provider targets; each can host several
+Anthropic, and Gemini are initial provider targets; each can host several
 configured agents using different or identical model profiles. The adjacent
 [interactive design](prototype/index.html) is a standalone deterministic
 simulation. It implements no live provider connection, credential storage,
@@ -70,8 +70,11 @@ not pretend to answer arbitrary text.
 ## Agent identity and configuration
 
 An agent is a configured participant with its own stable ID, name, provider, and
-model profile. It is not synonymous with a provider. Team enables two to six root
-agents. Several agents may use OpenAI, Anthropic, or Gemini, including the same
+model profile. It is not synonymous with a provider. The demo editor has capacity
+for six roots, with at least two required for Team. Deployment limits are
+configurable; six is not a universal product ceiling. The registry-based design
+can support more providers, profiles, and tools as adapters become available.
+Several agents may use OpenAI, Anthropic, or Gemini, including the same
 profile. Duplicate names and profiles do not merge identities. The synthesizer
 selector includes agent names and IDs so same-provider siblings remain distinct.
 
@@ -91,7 +94,9 @@ credential fields, or assertions that connections were checked.
 ## Modes, roots, and helpers
 
 **Quick** selects one root agent. By default it makes one draft call and allows no
-helpers, with an effective one-attempt cap. It has no peer-review or separate synthesis stage. Enabling helpers
+helpers or tools, with an effective one-request cap. It has no peer-review or
+separate synthesis stage. Helpers and configured tools can each be opted into.
+Enabling helpers
 changes the visible label to **Quick + helpers**. Permission does not force a
 helper call: the ordinary example still uses one call.
 
@@ -129,7 +134,7 @@ batch of children produces one continuation, not one per child.
 | --- | --- |
 | Default Team, three roots | 3 drafts + 3 reviews + 1 synthesis = 7 |
 | Team delegation, three roots | 3 root starts + 2 helpers + 1 parent continuation + 3 reviews + 1 synthesis = 10 |
-| Quick, helpers off | 1 root draft |
+| Quick, helpers and tools off | 1 root draft |
 | Quick + helpers, delegation scenario | 1 parent start + 2 helpers + 1 continuation = 4; no peer review or synthesis |
 | Delegation scenario with permission off | Base workflow only; explicit notice that no helper was requested or dispatched |
 
@@ -147,7 +152,9 @@ and proposed live bounds. All roots and descendants share these limits:
 
 | Limit | Proposed default |
 | --- | --- |
-| All dispatched attempts, including retries and continuations | 32 |
+| Observable provider API requests, including retries and continuations | 32 |
+| Observed tool operations | 64 |
+| Native agent SDK/CLI jobs | 4 |
 | Concurrent calls | 3 total, at most 2 to any one provider |
 | Overall deadline | 300 seconds |
 | Per-call timeout | 45 seconds |
@@ -156,8 +163,11 @@ and proposed live bounds. All roots and descendants share these limits:
 | Helper depth | At most 2; user may choose 1 |
 | Children per agent / helpers per run / total agents | 2 / 6 / 12 |
 
-Plain Quick without helper permission uses a one-attempt cap; Team and Quick +
-helpers share the 32-attempt tree budget.
+Plain Quick with helpers and tools both off uses a one-request cap. Enabling
+either permits the configured 32-request tree budget, even when the ordinary
+sample happens to finish after one request. These are configurable deployment
+defaults, not universal scale limits. Native jobs and observed tool operations
+have distinct units and budgets. Unobserved native internals remain unknown.
 
 The demo's deterministic scheduler respects concurrent-call and per-provider slot
 limits, including same-provider twins and six-root configurations. Short timers
@@ -171,12 +181,87 @@ remaining limit. An ambiguous timeout or sent request is never automatically
 retried. The partial simulation uses an explicit pre-generation rate-limit
 rejection followed by one rejected safe retry.
 
+## Automatic capability and tool routing
+
+Team permits preconfigured read, search, and scratch-code capabilities by default.
+Quick starts with tools off and allows an explicit opt-in. The Automatic tool
+routing section exposes the mode's policy and a compact capability registry.
+The planner selects an eligible profile/backend from that registry; it does not
+load every tool into every agent or decide eligibility by model votes. Automatic
+selection never creates an authorization grant.
+
+The demo registry contains three fictional mappings, with no claim about current
+vendor support:
+
+| Requested capability | Backend family | Approved helper profile |
+| --- | --- | --- |
+| Web research | Provider API tool | Demo research |
+| Sandboxed code | MCP/local tool | Demo scratchpad |
+| Workspace agent | Agent SDK/CLI | Demo workspace |
+
+Demo balanced has a registered web capability; Demo analytical has a registered
+scratch-code capability. Other requests route to the listed approved helper when
+subagents are allowed. Helper targets inherit the parent's provider and do not
+expand destinations. The activity names the reason, selected backend, provider,
+profile, destination, task, parent, and returned result. A missing capability or
+permission produces a visible blocked state, never a silent provider or
+synthesizer substitution. This illustrates a harness-managed helper, not native
+CLI recursion or a vendor's built-in subagent capability.
+
+Tool permission alone cannot create a helper. Capability delegation uses the same
+Allow subagents switch, depth, per-parent child, total-helper, and total-node
+quotas. When subagents are off, the default profile can use its approved direct
+web route, but its missing scratch-code capability stays blocked with an explicit
+reason. Native internal delegation is not enabled in this demo and needs a
+separately admitted bounded-job policy before live use.
+
+In the Automatic tools scenario, Web research + sandboxed code is the default
+request; the user can instead select either capability or Workspace agent. For
+the default three-root team, the combined sample has ten provider API invocations:
+three initial roots, one API-tool invocation, one helper invocation, one parent
+continuation, three root reviews, and one synthesis. Two known tool operations
+are counted separately: a mock web search and a mock scratch calculation. The
+web result says **Simulated retrieval; support unverified**. Retrieval, a working
+citation, and support for an answer are distinct states. No actual source is
+retrieved by the design.
+
+The workspace sample displays eight observable provider API requests plus one
+native-agent job, rather than calling the entire SDK/CLI job one model call. It
+marks internal model/tool usage unknown and live policy admission unvalidated.
+Strict policy rejects a missing required inner cap. An explicitly admitted
+bounded-job policy may keep inner counts unknown while enforcing supported
+scope, deadline, termination, and job controls. The chosen policy determines
+eligibility; an outer-job cap never establishes unknown inner usage. No live
+adapter or admission path is validated by this prototype. It executes no SDK,
+CLI, provider API tool, MCP operation, sandboxed code, or workspace action.
+
+The Action needs permission scenario names a concrete proposed public publish,
+its destination, and its exact text. With no matching task grant it pauses and
+says **Permission required. Nothing sent.** It does not provide a button that
+pretends to authorize a real external action. Existing task grants can already
+cover bounded workspace edits or other permitted writes; they may proceed
+without a redundant confirmation. Unknown or out-of-scope actions require a
+matching grant. Read/search/scratch-code eligibility is separate from permission
+to send, publish, delete, or expand access.
+
+Some provider-native server tools cannot be intercepted before each internal
+action. Their enabled scope must already be approved, or the route stays
+ineligible. A broad native capability is not a way around application policy.
+The Unsupported capability scenario requests image editing, for which this demo
+has no approved backend/profile, and stops without selecting a new provider.
+
+Activity and export separate API invocations, known tool operations, native
+jobs, and unknown internal usage. Cancellation invalidates tool-result callbacks
+as well as all root and child timers. No canceled tool result can resume a parent
+or produce a later final answer.
+
 ## Answers and source status
 
 The main answer has a short recommendation, supporting points, and a material
 assumption or limitation. The source section separates information used from
-sources retrieved and checked. All external sources in the prototype remain
-**Not retrieved or verified**. Helper findings do not change that status.
+sources retrieved and checked. Ordinary samples say **Not retrieved or verified**;
+the web-tool sample says **Simulated retrieval; support unverified**. No real
+external source is retrieved. Helper findings do not establish source support.
 
 The completion label says **Checks completed, correctness not guaranteed**.
 Agreement is not a correctness score. A material disagreement remains visible
@@ -195,6 +280,10 @@ outputs, never private reasoning traces.
 | One agent unavailable | That exact agent's draft is missing; siblings using the same provider remain available; workflow is partial |
 | Only one root draft survives | All peer reviews skipped; available synthesis remains partial |
 | Selected synthesizer unavailable | No substitution; labeled drafts/findings displayed without a consolidated final answer |
+| Tool permission off or required helper unavailable | Capability visibly blocked; no provider/profile permission added |
+| SDK/CLI internals unobservable | Unknown counts stay unknown; live admission unvalidated; strict inner-cap and explicit bounded-job policies differ |
+| Publish without matching task grant | Concrete action, destination, and text displayed; Permission required; nothing sent |
+| Unsupported capability | No approved route; no fallback silently introduced |
 | Stop | Root and descendant work canceled; no further calls or final answer |
 | New chat during work | Timers invalidated and current content cleared; old callbacks cannot alter the new chat |
 
@@ -219,7 +308,8 @@ current record and displayed text; reload or close discards the session.
 Export deliberately downloads a JSON demo record containing the current message,
 root and child identities, hierarchy, task outputs, call statuses, selected
 synthesizer, source status, and simulation notice. It includes no credentials or
-private reasoning. Canceled runs and skipped synthesis export no final answer.
+private reasoning. Canceled runs, skipped synthesis, permission pauses, and
+unsupported-capability stops export no final answer.
 
 Provider setup explains the proposed live configuration: user keys are supplied
 through server environment variables and never exposed to the browser. Before a

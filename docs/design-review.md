@@ -11,13 +11,24 @@ experience, technical design, API contract, evaluation plan, and roadmap use tha
 scope. Users can configure multiple agents from one provider and every provider's
 agents can request bounded subagents. Other defaults remain proposed choices,
 recorded in [decisions](decisions.md) and [agent policy](agents.md).
+The latest direction adds extensible provider/tool/backend registries and
+automatic capability routing within task grants. The user confirmed all tool
+surfaces: API tools, local agent apps/SDKs/CLIs, functions/MCP/local tools, and
+supported hosted agent services. Each integration still needs compatibility tests.
+The initial three API adapters remain the first live targets.
 
 ## Checks performed
 
-- OpenAPI 3.1.1 validation, six embedded request/schema/event examples, and twelve
-  invalid-schema cases passed. Semantic fixtures cover repeated profiles, unique
-  agent IDs, synthesizer membership, lineage/cycles, and invocation-scoped spawn
-  deduplication. These are design-contract checks, not backend tests.
+- OpenAPI 3.1.1 validation, fifteen embedded request/schema/event examples, and
+  fourteen rejected invalid-schema cases passed. Checks cover
+  extensible provider IDs, capability/runtime-policy metadata, tool execution,
+  exact-action approvals, and native usage visibility. Semantic fixtures cover
+  repeated profiles, unique IDs, synthesizer membership, lineage/cycles, dynamic
+  policy, and invocation-scoped spawn deduplication. These are design-contract
+  checks, not backend tests.
+  Semantic checks accepted an eight-root team within deployment ceilings and
+  rejected five identity/membership/deployment/tree conflicts. Helpers-off,
+  strict-on-opaque, revoked grants, and exact-action argument digests were checked.
 - Relative documentation links, referenced anchors, and whitespace were checked.
 - The prototype's embedded JavaScript passed a syntax check.
 - Browser checks preserved two OpenAI roots with different profiles, exact
@@ -39,22 +50,56 @@ recorded in [decisions](decisions.md) and [agent policy](agents.md).
   The downloaded canceled JSON preserved ancestry/status and had no final answer.
 - Desktop and 390-pixel mobile layouts were reviewed without horizontal overflow.
   Native keyboard/control behavior is retained; this is not a full accessibility audit.
+- Automatic web/code routing completed with ten simulated API invocations, two
+  known tool operations, and one managed same-provider helper. Direct web used the
+  current mock profile; scratch work used a permitted helper. These fictional
+  mappings make no vendor capability claim. Retrieval stayed support-unverified.
+- The workspace-agent sample recorded eight simulated API invocations and one
+  SDK/CLI job with unknown internal usage. It remained partial with live admission
+  unvalidated; no SDK/CLI ran or filesystem work occurred. Strict versus explicitly
+  admitted bounded-job policies are distinguished in the copy.
+- Tools/helpers-OFF Quick used one request/cap one. Tools-ON/helpers-OFF Quick
+  used direct web, blocked scratch helper creation, and created zero children.
+  Helper depth, fan-out, total-node, and observed-tool quota checks passed in
+  the embedded-script behavior fixtures.
+- The permission scenario displayed exact mock publish content/destination and
+  dispatched no tool/job; it illustrates a pause and has no real approval executor.
+  An unsupported image capability added no backend or provider. These scenarios
+  produced no external page requests or script errors during browser inspection.
+- Stop during a tool operation preserved canceled state and four dispatched API
+  invocations after pending timers elapsed, with no further continuation.
 
 The design distinguishes provider/profile from agent identity, root reviewers
 from helper artifacts, and the base call plan from dynamic total usage. Spawn
 identity includes the immutable parent invocation because tool IDs can repeat
 between responses. Waiting parents release execution slots, and all descendants
 share quotas, context permissions, cancellation, and the run deadline.
+Provider/tool IDs are extensible; finite personal defaults and the demo editor
+cap are separate from deployment ceilings. Initial allowlists/grant references
+are snapshotted, current grants are rechecked, and exact-action user approval
+cannot add providers or mint a blanket grant. Helpers-off also requires native
+helper suppression or route rejection. Approval credentials/control surfaces
+must be isolated from agent-operated browsers and CLIs.
+
+Official provider research is recorded in [provider capabilities](provider-capabilities.md).
+Documented compatibility is not live readiness. Postman discovery's public Orbit
+lookup returned HTTP 403; official documentation supplied the research fallback.
 
 ## What remains unverified
 
 There is no backend, persistence implementation, provider integration, live
 credential handling, or production security test. No model API calls, paid
-evaluation, provider availability tests, or source retrieval occurred. The
+evaluation, provider availability tests, or agent source-retrieval tools ran.
+Official documentation was browsed for design research. The
 standalone mockup keeps chat text in tab memory and exports only on user action.
 Its delegation example shows two direct children. The nested policy and alternate
 profile admission still require implementation; no arbitrary recursive runtime
-or provider-native subagent system has been tested.
+or provider-native subagent system has been tested. Native SDK/CLI permission
+hooks, auth, hidden loops, whole-tree usage, cancellation, remote cleanup, and
+approval-channel isolation all need implementation-specific tests. Larger-team
+review graphs and hierarchical synthesis remain extensions, not a measured
+capacity claim. API tools, SDK-local MCP, remote connectors, and hosted agent
+services must not be treated as equivalent execution surfaces.
 
 The package is ready to guide the first mock-backed implementation slice. It is
 not a claim that the proposed limits, security controls, or answer-quality gains

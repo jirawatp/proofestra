@@ -1,200 +1,254 @@
 # Local API contract
 
-Status: draft design; no endpoint or provider integration is implemented. The
-shape is [openapi.yaml](openapi.yaml), OpenAPI 3.1.1. This page supplies operational
-and cross-field rules that a schema alone cannot enforce. See [agent policy](agents.md).
-Generate future types, mocks, and Postman requests from the contract. No Postman
-workspace or provider connection is needed to inspect this design.
+Status: draft design only. No application endpoint, provider adapter, tool executor,
+or agent runtime is implemented. [openapi.yaml](openapi.yaml) defines request and
+response shapes; this page defines application invariants. See [agents](agents.md),
+[tools](tools.md), [scaling](scaling.md), and [provider capabilities](provider-capabilities.md).
+Future types, mocks and Postman requests should derive from this contract. Reading
+it requires no Postman workspace, credentials, provider calls or installed CLI.
 
-## Browser access
+Confirmed design scope includes provider API tools, local agent applications, SDKs
+and CLIs, MCP tools, and hosted agent services. Compatibility and implementation
+are staged per registered adapter; this scope does not claim live integration.
 
-Base origin: `http://127.0.0.1:3000`; prefix `/api/v1`. This is the personal UI's
-internal API. UTF-8 JSON only except events; maximum request body 128 KiB. Responses
-use `Cache-Control: no-store` and a generated `X-Request-ID`. Prompts never appear
-in URLs. Validate Host even on bootstrap and disable CORS.
+## Browser boundary
 
-`GET /session` sets an HttpOnly, SameSite=Strict local cookie and returns a CSRF
-token. Use Secure under HTTPS. All other operations require the cookie; writes
-also require `X-CSRF-Token` and an Origin exactly matching the configured origin.
-Missing session is 401; denied Host/origin/CSRF is 403. There are no accounts;
-trusted local processes remain in the trust boundary. Refresh can bootstrap a new
-session without losing history. Public/LAN exposure needs a separate design.
+Default origin is `http://127.0.0.1:3000`, API prefix `/api/v1`. This is a personal,
+same-origin UI API. Validate Host, disable CORS, keep prompts out of URLs, and apply
+`Cache-Control: no-store` plus a generated `X-Request-ID` to every response. Request
+bodies are UTF-8 JSON, maximum 128 KiB; event responses use SSE.
+
+`GET /session` sets an HttpOnly, SameSite=Strict cookie and returns a CSRF token.
+Use Secure under HTTPS. All other operations require the cookie; mutations also
+require `X-CSRF-Token` and the exact configured Origin. Refresh can bootstrap a
+session without losing history. This is not multi-user authentication: trusted
+local processes remain in the trust boundary; public/LAN exposure needs another design.
 
 ## Resources
 
-| Operation | Behavior |
+| Operation | Semantics |
 | --- | --- |
-| GET /session | Bootstrap session and CSRF without provider calls. |
-| GET /providers | Three provider entries with server-configured model-profile catalogs; no keys or live checks. |
-| GET /conversations | Cursor page, default 20/max 100; newest updated first with UUID tie-break. |
+| GET /session | Bootstrap local cookie/CSRF without provider calls. |
+| GET /providers | Paginated registered providers and configured profiles; no keys or live checks. |
+| GET /capabilities | Paginated catalog filtered by q, provider, profile_id, backend_id or backend_kind. |
+| GET /runtime-policy | Versioned personal defaults and finite deployment ceilings; read only. |
+| GET /conversations | Cursor page, newest updated first with UUID tie-break. |
 | POST /conversations | Create blank conversation; 201 and Location. |
-| GET /conversations/{conversation_id} | Conversation metadata. |
-| DELETE /conversations/{conversation_id} | Logical cascade deletion; 204 including absent IDs; 409 while active. |
-| GET /conversations/{conversation_id}/messages | Cursor page in stable chronological sequence. |
-| POST /conversations/{conversation_id}/runs | Atomically save prompt, agent/configuration snapshot, and queued run. |
-| GET /runs/{run_id} | Snapshot, lineage, bounded artifacts and spawn decisions; never start/resume work. |
-| PUT /runs/{run_id}/cancellation | Cancel active run and descendants atomically; repeats return current state. |
-| GET /runs/{run_id}/events | Replay durable progress without starting work. |
-| GET /conversations/{conversation_id}/export | Versioned JSON including terminal run trees; 409 while active. |
+| GET /conversations/{conversation_id} | Read metadata. |
+| DELETE /conversations/{conversation_id} | Logical cascade; 204 even when absent; 409 while active. |
+| GET /conversations/{conversation_id}/messages | Stable chronological message sequence. |
+| POST /conversations/{conversation_id}/runs | Atomically admit a run and freeze its configuration. |
+| GET /runs/{run_id} | Current snapshot/lineage plus first page of tool execution records. |
+| GET /runs/{run_id}/tool-executions | All tool execution/route records by stable execution sequence, paginated. |
+| POST /runs/{run_id}/tool-approvals | Approve/deny one pending exact action; never create a blanket grant. |
+| PUT /runs/{run_id}/cancellation | Stop local scheduling and request cancellation across descendants/jobs. |
+| GET /runs/{run_id}/events | Replay durable progress; never start or resume work. |
+| GET /conversations/{conversation_id}/export | Full versioned logical export after all runs are terminal. |
 
-Cursors are opaque and endpoint/conversation scoped. Invalid cursors return 400.
-Lists return `items` and nullable `next_cursor`. Conversation pages are live views;
-updates may move entries. Message sequences are stable. Deletion invalidates cursors.
+Pages default to 20 items, maximum 100, with `items` and nullable `next_cursor`.
+Cursors are opaque and scoped to endpoint, filters and conversation/run. Invalid
+cursors return 400. Conversation pages are live views; updates can move entries.
+Message/execution sequences remain stable even as an execution's status changes.
+Deletion invalidates associated cursors. Tool pages prevent a large tool history
+from being silently dropped from the run snapshot; exports include every record.
 
-## Root agents and profiles
+## Registry, agents and compatibility
 
-`RunCreate.agents` contains `AgentDefinition` objects: a run-scoped UUID `agent_id`,
-name (1–80 characters), server catalog `profile_id`, and optional concise role.
-Agent identity is independent of provider and model. Repeated providers and
-profiles are legal; duplicate agent IDs are not. Clients cannot submit model IDs,
-credentials, parent IDs, or runtime lineage. Catalog profile IDs are globally unique.
+Provider IDs are registered strings, not a fixed enum. OpenAI, Anthropic and Gemini
+remain initial integration targets. Additional providers require validated adapter
+manifests. Provider/profile registration is operator configuration, not a model
+permission or a new browser endpoint. Listing metadata makes no discovery/model call.
 
-Quick has one root agent and no synthesizer. Team has two to six roots and requires
-`synthesizer_agent_id` to identify one of them. Its base plan is `n` drafts, `n`
-peer reviews, and one synthesis: `2n+1` calls. The default three-root team still has
-seven base calls. Children do not add root votes or peer reviewers. When fewer than
-two root drafts survive, skip peer reviews. Never silently substitute a synthesizer.
+An `AgentDefinition` has a run-scoped UUID, name, catalog profile ID and optional
+bounded role. Different agents may share a provider, model or profile. Duplicate
+agent IDs are invalid. A profile references `execution_backend_id`; backend kinds
+are `provider_api`, `agent_sdk_cli`, `mcp_local`, and `hosted_agent`. These describe
+different execution and control surfaces, not interchangeable implementations.
 
-Each provider catalog may contain multiple profiles. A profile exposes its ID,
-model ID, configured safe input capacity, readiness, and delegation compatibility.
-Readiness means local configuration, not proven availability. Mark delegation
-supported only after the adapter/profile's internal tool-request round trip has
-been checked. The design does not use vendor-native agent or subagent services.
-The first live acceptance requires a compatible delegating profile for each of
-OpenAI, Anthropic, and Gemini; that compatibility is not implemented or asserted now.
+Versioned capability entries describe a tool/profile/backend combination, its
+compatibility evidence, readiness, authentication needs, permission scopes, egress,
+observability and enforceable execution controls. Documented support is distinct
+from tested compatibility or current availability. No tool is assumed universal
+across a provider's models, API routes, SDK/CLI versions or authentication modes.
 
-## Run admission, context and limits
+Quick has one root, no root peer review, and no synthesizer. Team has at least two
+roots within effective deployment policy, with `synthesizer_agent_id` identifying
+one of them. The present `all_peers` topology plans n drafts, n reviews and one
+synthesis: `base_planned_calls = 2n+1`; three roots still have seven base calls.
+This counts root harness calls before delegation/tool continuations, not fixed
+runtime work. Children are not extra root votes. Bounded-peer and hierarchical
+topologies need later designs and are not accepted enum values yet. Large teams
+must still pass context, work and deadline admission; no unbounded scaling is implied.
 
-Require an `Idempotency-Key` UUID for each intended run. Persist the key and
-normalized request digest for the conversation lifetime. Same key/payload returns
-the original snapshot with 200 and Location, including after restart; changed
-payload returns 409 `idempotency_conflict`. Resolve replay before the one-global-
-active-run guard. A distinct start while any run is active returns 409 `run_in_progress`.
-Persist prompt, configuration, key/digest, run and initial event atomically.
+## Admission, context and dynamic limits
 
-`execution_mode` defaults to mock. Live requires server enablement and configured
-selected/allowed profiles. Delegation defaults enabled for Team and disabled for
-Quick; `allowed_profile_ids` is the user's frozen allowlist for alternate child
-profiles, default empty (inheritance only). Models cannot expand that permission.
-Before live submission, disclose every possible destination from root and allowed
-helper profiles, including cross-provider tasks/results. Enabling delegation
-requires supported profiles. Reject invalid or unavailable
-configuration with 422 before dispatch. A start returns queued, not an answer.
+Every start requires an `Idempotency-Key` UUID. Persist its normalized payload
+digest for the conversation lifetime. Same key/payload returns the original run
+with 200/Location, including after restart; changed payload returns 409
+`idempotency_conflict`. Resolve replay before the one-global-active-run guard.
+Queued, running, waiting-for-tool/children and awaiting-approval work is active.
+Live submissions include expected catalog/policy versions from the displayed
+configuration; a version change returns 409 before dispatch. A distinct start
+during active work returns 409 `run_in_progress`. Persist prompt,
+run, frozen profiles/capabilities/policy/grants, key/digest and first event atomically.
 
-The current prompt has at most 16,000 characters. `all_history_v1` freezes every
-visible prior user/final-answer turn plus this prompt and records their message IDs.
-No hidden trimming or summarization is allowed. Preflight configured safe capacities
-with instructions, output reserve, root peer artifacts and bounded delegation input.
-Reject 422 `context_too_large` before any call if the base workflow cannot fit.
-Each spawn/continuation is checked again; deny an oversized child branch or preserve
-a partial result if later required stage input cannot fit. Children inherit the same
-frozen history plus a scoped task and permitted branch artifacts; during drafting,
-no current peer-root drafts enter that branch. Review branches receive only the
-review stage's authorized material. No provider-specific silent truncation.
+Execution defaults to mock. Live requires server enablement and compatible,
+authorized configured routes. Team defaults to delegation enabled and tool mode
+`auto`; Quick defaults to both off. Auto means select a useful eligible route
+inside existing scope, not enable all tools. Freeze allowed tool, backend, helper
+profile IDs and references to existing task/session grants. Models cannot mint
+grants, add destinations or change the selected root synthesizer. Recheck grant
+expiration/revocation and scope before every dispatch; broader changes need a new
+run. Explain every
+possible root/helper/tool destination and data flow before live submission.
 
-| Effective limit | Proposed default/ceiling |
+`all_history_v1` freezes all visible prior user/final-answer turns plus the new
+prompt (maximum 16,000 characters), with exact message IDs. Preflight base work
+against configured safe input capacities including instructions and output reserve.
+No hidden trimming or summarization. Reject 422 `context_too_large` before dispatch
+if the base workflow cannot fit. Recheck actual child/tool/continuation material;
+deny an oversized optional route or preserve partial results when required work
+cannot finish. Drafting branches never receive current peer-root drafts or children;
+review access begins only after the root draft barrier. Opaque runtimes that cannot
+preserve required context isolation are ineligible for that workflow.
+
+`GET /runtime-policy` advertises defaults and finite server deployment ceilings.
+Requests may lower bounds or choose higher values only within those ceilings; they
+cannot enlarge policy by submitting their own limits or remove mandatory server
+permission/context controls. Snapshot the policy version
+and effective limits. Counts below are personal defaults, not product ceilings:
+
+| Limit | Personal default |
 | --- | --- |
-| All dispatched invocations | 32; includes roots, children, parent continuations and safe retries |
-| Concurrent invocations | 3 global, at most 2 per provider across all profiles/agents |
-| Overall / per-call deadline | 300 / 45 seconds; child work shares the run deadline |
-| Requested output | 2,048 tokens per invocation, 65,536 aggregate allowance |
-| Root / total / spawned agents | 6 / 12 / 6 |
-| Accepted children per agent / depth | 2 over the agent's lifetime / 2 with roots at depth 0 |
-| Rejected-request retries | At most 1 per logical step, inside every other limit |
+| Observable harness invocations / tool operations / native jobs | 32 / 64 / 4 |
+| Concurrent harness calls globally / per provider | 3 / 2 across every profile of that provider |
+| Overall / per-call / native-job deadline | 300 / 45 / 120 seconds, bounded by remaining run time |
+| Output per harness call / aggregate requested output | 2,048 / 65,536 tokens |
+| Root / total accepted / spawned agents | 6 / 12 / 6 |
+| Direct accepted children over an agent's lifetime / depth | 2 / 2, roots at depth 0 |
+| Safe rejection retries | 1 per logical step, across its initial/continuation sequence |
 
-Quick with helpers disabled has one invocation and no retry; explicitly enabling
-helpers uses the shared 32-invocation defaults while preserving one root and no
-root peer review/synthesis. `base_planned_calls` stays 1. Team base counts are 5,
-7, 9, 11, or 13. A base plan is not a promise of the eventual dynamic call count.
+Quick with helpers and tools both off uses one harness call and no retry. Opting
+into either uses shared defaults while keeping one unreviewed root. Reserve
+harness calls, observable operations, jobs and output before local dispatch;
+preserve required unfinished root work and the parent's continuation before optional
+work. Accepted nodes consume lifetime quotas even after failure/cancellation.
 
-Reserve attempts and maximum output atomically before dispatch, including batches.
-Only retry an explicit safe rejection known to precede generation, never an
-ambiguous sent request/timeout. Unknown usage stays unknown; retain conservative
-output reservations. Output ceilings bound scheduling/requested output, not input
-charges or a monetary billing guarantee. Dollar estimates need a dated price source.
+The 45-second clock covers direct requests and native-job launch acknowledgement.
+A separately supervised native job has its own 120-second lifetime, within the
+remaining overall deadline; these are distinct control scopes.
 
-## Bounded internal delegation
+A harness invocation is a call Proofestra schedules; one native API request or SDK
+query can contain multiple internal model/tool operations. Ledgers distinguish
+`harness_invocations`, `tool_operations_observed`, `native_jobs_started`, internal
+counts/visibility and estimated/unknown cost. An unknown internal count is null,
+not zero and not one. The 32 default never promises a global internal-call cap.
 
-Adapters normalize a model's `spawn_subagent` request to `SpawnRequest`. The server
-supplies the run, parent agent, parent step, parent invocation and provider tool-call
-IDs; the model
-supplies only a bounded task/name and optional profile selection. There is no public
-spawn endpoint or browser-authorized tool execution, and no arbitrary external tool.
+A `strict` route is eligible only when the backend can enforce the requested
+controls, including any required internal limits. Otherwise decline it. Explicit
+`bounded_job` mode with `allow_unknown_internal_usage: true` may run an opaque job
+only with an enforceable launch/job deadline and authorized scope; label its
+unobservable internal work and cancellation limits. Backend execution caps are
+snapshotted per job. Observations learned after remote execution can exceed a local
+admission threshold; report that rather than claiming retrospective enforcement.
+Only retry known pre-generation rejections, never ambiguous sent requests or actions
+with uncertain side effects. Output limits and estimates do not guarantee billing.
 
-Deduplicate by `(run_id, parent_agent_id, step_id, parent_invocation_id, provider_tool_call_id)` plus
-normalized request digest. Matching replays return the original decision/child;
-changed payload gets an `invalid_request` denial without changing that decision or
-creating another child. The same tool-call ID in another parent invocation is a new
-request under the lifetime quotas. IDs alone cannot select another parent or run.
-Malformed arguments are recorded as a safe denial with a null normalized request.
+## Tool routing and approvals
 
-Before accepting, check enabled policy, profile allowlist/readiness/compatibility,
-context, depth and lifetime quotas, remaining deadline, and reservations for the
-child's initial invocation, parent continuation, and unfinished required root work.
-Create the child/decision/reservations atomically. Accepted nodes consume lifetime
-quotas even if later failed or canceled. Child profile inherits its parent
-unless an alternate profile was preapproved. Child IDs are server generated.
-Parents enter `waiting_for_children` and release their concurrency slot; the root
-stage cannot complete until descendants settle and the parent continuation finishes.
-One parent response batch (keyed by parent_invocation_id) schedules one logical
-continuation; duplicate callbacks cannot resume it again. Multiple children may
-share that continuation. Its safe retry still counts and uses the step's single
-retry allowance across the entire initial/continuation sequence.
+Adapters normalize an internal `ToolInvocationRequest` naming a bounded capability,
+optional specific tool, scoped task and schema-validated arguments. The server
+supplies caller/run/step/invocation IDs. It selects a directly compatible native
+tool or a helper route within frozen allowlists, grants and execution controls.
+`RouteDecision` records direct, delegated, awaiting_approval, blocked or unavailable.
+Tool-created managed helpers require `delegation.enabled`; auto tool mode cannot
+bypass helpers-off. A native backend must also honor disabled helper spawning or
+be ineligible, even in bounded-job mode. No eligible route means a visible
+limitation, never a fabricated result, new
+provider destination or silent synthesizer replacement.
 
-A denial creates no child and dispatches no extra model invocation by itself. Its
-concise notice can reach the parent's ordinary continuation only if budget remains.
-Record accepted/denied decisions and safe reasons visibly. A denied optional spawn
-does not alone make a run partial; any accepted child failure does. Exhaustion that
-prevents a required root stage still makes the workflow partial/failed.
+Use a matching task/session grant when it already authorizes the operation,
+including appropriate reversible actions. If authorization is missing, pause the
+exact action when policy permits approval, or block it. Parents enter
+`waiting_for_tool` or `awaiting_approval` and release execution permits; the overall
+deadline continues. Approval cannot expand the frozen destination/tool/profile
+allowlists or repair an incompatible backend.
 
-## State, artifacts and errors
+`POST /runs/{run_id}/tool-approvals` requires the pending approval ID, execution ID,
+SHA-256 digest of the exact normalized nonsecret arguments, and approve/deny. Bind
+that pending record to the run/caller, tool/profile/backend, task and policy version.
+The trusted approval UI and its credentials must be isolated from agent-controlled
+browsers, shells and MCP environments; Origin/CSRF alone does not prove a human
+action. The UI displays the complete nonsecret action preview and referenced credential
+scope; actual secret values remain server-side. A changed action invalidates approval.
+The response only records the decision; dispatch still requires budget and current
+run state. Missing/stale/mismatched pending action is 409. An Idempotency-Key replays
+the same decision; changed payload/decision conflicts. No double execution or grant
+minting is allowed by duplicate callbacks or model-supplied IDs.
 
-Runs: queued → running → completed, partial, failed, canceled, or interrupted.
-`AgentSnapshot` includes stable run-scoped agent ID, parent/root IDs, depth, profile,
-provider/model, task, child IDs and runtime status. Steps have unique `step_id` and
-`agent_id`; stages include helper work. Invocation records distinguish initial,
-continuation and retry calls, with exact dispatched totals. The same provider may
-appear in many steps; it is never their identity. Parent links must form an acyclic
-tree, match root/depth/child links, and stay inside the same run. Enforce these and
-unique IDs, synthesizer membership, effective limits and profile rules in application
-validation; JSON Schema cannot express all cross-record relationships.
+Tool executions retain safe argument previews/digests, routes, grants, concise
+results, external status and accounting. Raw credentials, headers, hidden reasoning
+and unrestricted vendor traces are excluded. A retrieved source gets origin,
+retrieval time and location; `retrieved` is not `verified`. Track retrieval and
+claim-support assessment separately, with checked/supported/disputed/unknown states.
 
-Completed means all required root work and accepted child work completed, never
-factual correctness. Missing Team review, accepted child failure, provider failure
-or draft fallback means partial; zero successful root drafts fails. Sources remain
-unverified. Synthesis failure exposes labeled drafts. Overall deadline yields
-partial with a root draft, failed without one. Cancellation may return completed
-if completion won the race; once canceled, late callbacks cannot replace state or
-artifacts. Terminal roots cancel unfinished descendants. Run cancellation cancels
-the whole tree. Restart marks unfinished runs/agents/steps interrupted with no
-automatic resubmission. Provider work already sent may still be billed. SSE
-disconnection neither cancels nor duplicates a run.
+## Delegation and durable identity
 
-Errors use `{error: {code, message, request_id, details}}`. 400 is malformed input;
-401 missing session; 403 denied Host/origin/CSRF; 404 unknown parent/run; 409 conflict;
-413 body too large; 422 semantic/readiness/context validation; 429 local admission
-limiting with Retry-After; 500 unexpected internal failure. Field details never echo
-sensitive values. Provider/child failures and spawn denials are run data, not HTTP
-500 on retrieval. Do not expose vendor payloads, keys, headers or private reasoning.
+`spawn_subagent` remains internal, with a bounded task and optional preapproved
+profile. The server derives parent/root/depth. Deduplicate spawn and tool actions by
+`(run_id, agent_id, step_id, parent_invocation_id, provider_tool_call_id)` plus digest.
+Matching payload replays the original decision; changed payload is denied without
+creating/executing another child/action. A vendor tool-call ID reused in a new
+parent invocation is a new request within lifetime quotas.
 
-## Durable progress and export
+Parents waiting for children release global/provider permits. One logical parent
+continuation is scheduled per invocation response batch, not per duplicate callback;
+several child/tool results may share it. Children and any continuation consume
+budget. Denied optional work alone does not make a run partial; accepted child
+failure or required unfinished root work does. Preserve visible denial reasons.
+Parent links must be same-run, acyclic, reciprocal and depth-consistent. Enforce
+unique IDs, membership, policy limits, grant scope and accounting relationships in
+application validation; JSON Schema cannot express all cross-record invariants.
 
-SSE has increasing numeric IDs scoped to a run. Event names match `EventEnvelope.type`:
-`run.started`, `agent.created`, `agent.updated`, `step.updated`, `spawn.decided`, and
-`run.finished`. Agent/step events include their IDs and lineage; spawn events carry
-the bounded decision. Agent-created events name the profile/task; completed helper
-step events include the concise result and usage. Step updates distinguish step
-attempts from the run-wide count. Snapshot/export preserve the entire tree, tasks, concise
-results, denials, base plan and actual usage. Events carry no raw token stream.
+## Completion, cancellation and recovery
 
-`Last-Event-ID` resumes after its sequence; absent replays after zero. Malformed,
-negative or future IDs return 400 before streaming. Persist events until deletion;
-comment heartbeats have no IDs. Close after terminal event. A request already at
-the terminal ID returns 204; clients fetch the snapshot and stop reconnecting.
-Deletion returns 404. Event transitions and stored state are atomic.
+Terminal runs are completed, partial, failed, canceled or interrupted. Completed
+means the authorized required workflow finished, not factual correctness. Missing
+Team reviews, accepted child failure or draft fallback is partial; zero successful
+root drafts fails. With one surviving draft, skip peer review. A synthesis failure
+exposes labeled drafts. Never silently replace the selected synthesizer.
 
-Exports contain `export_version: 1`, timestamp, conversation, messages and terminal
-run snapshots, including descendants. Disclose that downloads contain user/task
-text and review artifacts. Exclude cookies, CSRF tokens, keys, raw HTTP payloads,
-infrastructure logs and private reasoning. Import is outside MVP. Deletion is
-logical, not forensic erasure of backups, downloads, SQLite pages or provider data.
+Stop prevents new local children/tools/continuations and propagates cancellation
+across the tree and native jobs. Already completed side effects are not reversed.
+If a remote stop cannot be confirmed, preserve `external_status: unknown` or
+`orphaned`; never fake canceled external work. Keep workflow terminal state immutable;
+separate later external-status/usage reconciliation may append audit events without
+resuming the run. Restart interrupts local unfinished work; reconcile known remote
+job IDs when possible, otherwise mark unknown/orphaned, with no automatic resubmission.
+A disconnected event stream does not stop or duplicate a run. Sent work may be billed.
+
+Errors use `{error: {code, message, request_id, details}}`: 400 malformed input;
+401 missing session; 403 denied Host/origin/CSRF; 404 absent resource; 409 conflict;
+413 oversized body; 422 semantic/profile/context/control validation; 429 local
+admission limiting with Retry-After; 500 unexpected failure. Errors never echo
+sensitive values. Tool denials/provider failures are run data, not retrieval HTTP 500.
+
+## Events, export and deletion
+
+SSE uses increasing run-scoped numeric IDs and typed bounded envelopes. Events
+cover runs, agent/step lineage, spawns, routes, tool execution, approval and external
+reconciliation. Completed helper/tool events include concise permitted results and
+accounting; no raw token stream or private reasoning. Persist transitions and events
+atomically. `Last-Event-ID` replays after that sequence; absent means zero. Invalid,
+negative or future IDs return 400. Comment heartbeats have no IDs. Close at a
+workflow terminal event; clients fetch snapshots/pages for later external reconciliation.
+For a terminal run, a cursor at the latest stored sequence returns 204. If newer
+reconciliation records exist, an explicit replay returns them and closes when
+caught up. Deletion returns 404.
+
+Export version 1 includes conversation/messages and complete terminal run trees,
+all tool/route/approval records, source provenance and scoped accounting. It is not
+a paginated snapshot preview. Downloads contain user/task text; disclose before
+export. Delete/export reject active runs with 409. Deletion cascades through local
+records, but does not erase backups, SQLite pages, downloads, or provider-side
+history; unknown/orphaned external work may continue. Import is outside this design.

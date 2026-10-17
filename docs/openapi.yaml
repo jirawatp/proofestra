@@ -2,26 +2,16 @@ openapi: 3.1.1
 info:
   title: Proofestra local API
   version: 0.1.0-draft
-  summary: Planned personal self-hosted API; no endpoint is implemented.
-  description: 'Draft contract for the same-origin personal browser UI. No provider integrations
-
-    or runtime are implemented. Default origin is loopback; this session boundary
-
-    is not public-service or multi-user authentication. Validate Host, disable CORS,
-
-    and accept UTF-8 JSON with a maximum request body of 128 KiB. Every response,
-
-    including errors and event streams, uses Cache-Control: no-store and X-Request-ID.
-
-    Live calls require server enablement, configured selected/allowlisted model profiles, and explicit
-
-    execution_mode: live. Startup and metadata reads never call providers.
-
-
-    Agent identity is separate from provider/model. Repeated provider/profile roots and bounded internal subagents
-    are planned, not implemented. Runtime calls include child work and parent continuations.
-
-    '
+  summary: Proposed extensible personal API; no runtime, tool executor or endpoint is implemented.
+  description: Draft same-origin personal UI contract. Provider IDs/catalogs are extensible through validated adapter
+    manifests; the initial three targets are not a fixed enum. Profiles identify execution backends and versioned
+    capability/control metadata. No provider SDK, CLI, API or tool execution is implemented. Validate Host/session/CSRF/Origin,
+    disable CORS, enforce a 128 KiB body maximum, and use no-store plus X-Request-ID. Live work requires explicit
+    authorized submission. Personal numerical defaults are not product ceilings; finite runtime-policy ceilings
+    govern admission. Observable harness invocations are not opaque internal model/tool counts. No universal compatibility,
+    guaranteed cancellation, billing or accuracy claims. Confirmed design scope includes provider API tools, local
+    agent applications, SDKs/CLIs, MCP tools and hosted agent services. Compatibility/implementation are staged
+    per adapter; none is implied live by inclusion in scope.
   license: {name: Apache License 2.0, identifier: Apache-2.0}
 servers:
 - {url: 'http://127.0.0.1:3000/api/v1'}
@@ -58,10 +48,10 @@ paths:
     get:
       tags: [Providers]
       operationId: listProviders
-      summary: Read provider model-profile catalogs and masked readiness
-      description: Always returns all three providers, each with zero or more profiles. Repeated-provider agents
-        can select the same or different profile. Readiness is local configuration, not verified availability; delegation
-        capability requires adapter/profile compatibility checks. No key values or provider requests.
+      summary: Page registered providers and configured model profiles
+      description: Extensible validated adapter registry, initially targeting OpenAI/Anthropic/Gemini. Provider
+        IDs are open registered strings; multiple profiles/backends per provider. No credentials, model discovery,
+        CLI launch or provider calls.
       responses:
         '200':
           description: Provider metadata and server live-mode enablement.
@@ -73,6 +63,10 @@ paths:
               schema: {$ref: '#/components/schemas/ProviderList'}
         '401': {$ref: '#/components/responses/Error'}
         default: {$ref: '#/components/responses/Error'}
+      parameters:
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
+      - {$ref: '#/components/parameters/CatalogQuery'}
   /conversations:
     get:
       tags: [Conversations]
@@ -193,24 +187,12 @@ paths:
       tags: [Runs]
       operationId: createRun
       summary: Atomically save prompt and configuration and enqueue one run
-      description: 'Resolve durable idempotency replay before the single global active-run guard.
-
-        Same conversation/key and normalized payload returns the original snapshot
-
-        with 200, even after restart; changed payload returns 409 idempotency_conflict.
-
-        A distinct request while any run is active returns 409 run_in_progress.
-
-        Persist keys/digests for the conversation lifetime. Validate the entire
-
-        request and live readiness before dispatch. Returns queued, not an answer.
-
-
-        Root agent IDs must be unique, but providers/profiles may repeat. Team permits 2–6 roots; Quick one. Validate
-        synthesizer/root membership, frozen delegation allowlist and cross-field limits before dispatch. Run admission
-        atomically snapshots the profiles, agents and delegation policy.
-
-        '
+      description: Resolve durable idempotency before the single global active-run guard, including waiting/approval
+        states. Freeze profile/backend/capability/runtime-policy/grant versions and safe context atomically with
+        prompt/run/key/event. Reject unique-ID, membership, readiness, control, scope, context and finite deployment-policy
+        violations before dispatch. Repeated provider/profile roots and larger teams within deployment policy are
+        valid. All-peers base plan is not dynamic internal work; no blind global 32 internal-call promise. No new
+        destinations/grants or silent synthesizer replacement. Returns queued, not a completed answer.
       security:
       - cookieAuth: []
         csrfToken: []
@@ -250,6 +232,7 @@ paths:
                   delegation:
                     enabled: true
                     allowed_profile_ids: []
+                  tool_policy: {mode: 'off'}
               quickWithHelpers:
                 summary: Explicit Quick helpers opt-in; base remains one unreviewed root call
                 value:
@@ -260,6 +243,49 @@ paths:
                   delegation:
                     enabled: true
                     allowed_profile_ids: [anthropic-default]
+              customProvider:
+                summary: A registered custom provider/profile is legal; not universal live support
+                value:
+                  prompt: Compare the supplied facts.
+                  mode: team
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1, name: Local analyst, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2, name: Second analyst, profile_id: lab-text}
+                  synthesizer_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+                  delegation: {enabled: false}
+                  tool_policy: {mode: 'off'}
+              largeTeamWithinPolicy:
+                summary: Eight roots may be admitted only if runtime ceilings/context/budget permit
+                value:
+                  prompt: Compare the supplied alternatives without inventing evidence.
+                  mode: team
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000001, name: Perspective 1, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000002, name: Perspective 2, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000003, name: Perspective 3, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000004, name: Perspective 4, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000005, name: Perspective 5, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000006, name: Perspective 6, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000007, name: Perspective 7, profile_id: lab-text}
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000008, name: Perspective 8, profile_id: lab-text}
+                  synthesizer_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-000000000001
+                  delegation: {enabled: false}
+                  tool_policy: {mode: 'off'}
+                  limits: {max_root_agents: 8, max_total_agents: 16, max_harness_invocations: 32}
+              autoSearch:
+                summary: Auto tool selection within explicit allowed routes and an existing task grant
+                value:
+                  prompt: Find sources for this public claim.
+                  mode: quick
+                  agents:
+                  - {agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1, name: Researcher, profile_id: anthropic-search}
+                  tool_policy:
+                    mode: auto
+                    allowed_tool_ids: [anthropic.web_search]
+                    allowed_backend_ids: [anthropic-messages]
+                    allowed_profile_ids: [anthropic-search]
+                    grant_refs: [ffffffff-ffff-4fff-8fff-fffffffffff1]
+                    bounds_mode: strict
       responses:
         '201': {$ref: '#/components/responses/RunCreated'}
         '200': {$ref: '#/components/responses/RunReplay'}
@@ -278,9 +304,9 @@ paths:
       tags: [Runs]
       operationId: getRun
       summary: Read a run snapshot without starting or resuming work
-      description: A provider/child failure or spawn denial is bounded snapshot data, not HTTP 500. Reads include
-        all agent lineage and exact invocation accounting without starting/resuming work. No keys, vendor debug
-        payloads or private reasoning.
+      description: Read current lineage, observable accounting, external status and first-page tool records/cursor.
+        Tool/provider denials are run data, not HTTP 500. Does not execute/resume work; no raw credentials/vendor/private
+        reasoning traces.
       responses:
         '200': {$ref: '#/components/responses/RunSnapshot'}
         '401': {$ref: '#/components/responses/Error'}
@@ -293,17 +319,11 @@ paths:
       tags: [Runs]
       operationId: cancelRun
       summary: Request cancellation and return the current snapshot
-      description: 'Idempotent, bodyless operation. Atomically cancel active work; repeated calls
-
-        return the current terminal state. Completion may win the race. A canceled
-
-        state cannot be replaced by late callbacks. Already-sent work may be billed.
-
-
-        Cancellation covers every descendant and pending continuation. Terminal roots also cancel unfinished descendants.
-        Release local slots; already-sent provider work may still be billed.
-
-        '
+      description: Idempotent local workflow cancellation across descendants/tools/continuations/native jobs. Completion
+        may win. Stop new scheduling; request remote stop, never undo completed side effects. If remote completion
+        is unknown retain unknown/orphaned external status; do not claim cancellation/refund. Workflow terminal
+        state remains immutable while separate external status/usage reconciliation can append records. Never auto-resubmit
+        after restart.
       security:
       - cookieAuth: []
         csrfToken: []
@@ -322,25 +342,13 @@ paths:
       tags: [Runs]
       operationId: streamRunEvents
       summary: Replay durable bounded stage events using SSE
-      description: 'Read-only replay; disconnect never changes run state. IDs are increasing
-
-        decimal integers scoped to the run; absent Last-Event-ID replays after zero.
-
-        Malformed, negative, or future IDs return 400 before opening the stream.
-
-        Events live until conversation deletion. Close after run.finished; return
-
-        204 if Last-Event-ID already equals that terminal event ID. Comment
-
-        heartbeats have no ID. SSE event name equals EventEnvelope.type; data is
-
-        JSON conforming to EventEnvelope. No raw token stream or hidden reasoning.
-
-
-        Agent/step events identify agent_id, step_id where relevant and parent/root/depth lineage; spawn.decided
-        exposes a bounded internal decision. Same provider can occur in many identities.
-
-        '
+      description: Read-only persisted run-scoped SSE replay; disconnect does not cancel/duplicate work. Last-Event-ID
+        absent replays after zero; malformed/negative/future IDs return 400. Event name equals EventEnvelope.type.
+        Includes lineage, routes, approvals, tool results and scoped usage; no raw token stream/private reasoning.
+        Close after workflow terminal event; later external reconciliation is available by snapshot/tool pages and
+        a fresh explicit replay. Return 204 when cursor is already at the latest terminal sequence. Never auto-resume
+        or fake remote cancellation. If a terminal run has newer reconciliation records after the cursor, replay
+        them and close when caught up; 204 only when terminal and already at the latest stored sequence.
       parameters:
       - name: Last-Event-ID
         in: header
@@ -357,9 +365,18 @@ paths:
               schema: {type: string}
               example: 'id: 4
 
-                event: step.updated
+                event: tool.updated
 
-                data: {"run_id":"11111111-1111-4111-8111-111111111111","sequence":4,"type":"step.updated","at":"2026-10-17T02:00:00Z","data":{"agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","parent_agent_id":null,"root_agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","depth":0,"step_id":"cccccccc-cccc-4ccc-8ccc-ccccccccccc1","stage":"draft","provider":"openai","status":"waiting_for_children","attempts_dispatched":1,"run_attempts_dispatched":1}}
+                data: {"run_id":"11111111-1111-4111-8111-111111111111","sequence":4,"type":"tool.updated","at":"2026-10-17T02:00:01Z","data":{"tool_execution_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1","sequence":1,"run_id":"11111111-1111-4111-8111-111111111111","agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","step_id":"cccccccc-cccc-4ccc-8ccc-ccccccccccc1","parent_invocation_id":"dddddddd-dddd-4ddd-8ddd-ddddddddddd1","provider_tool_call_id":"call-search-1","request":{"capability_id":"web.search","arguments":{"query":"Source
+                for the supplied public claim"}},"argument_digest":"sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea","arguments_preview":"query:
+                Source for the supplied public claim","route_decisions":[{"route_decision_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2","tool_execution_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1","run_id":"11111111-1111-4111-8111-111111111111","agent_id":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1","step_id":"cccccccc-cccc-4ccc-8ccc-ccccccccccc1","parent_invocation_id":"dddddddd-dddd-4ddd-8ddd-ddddddddddd1","provider_tool_call_id":"call-search-1","capability_id":"web.search","route":"direct","selected_tool_id":"anthropic.web_search","selected_profile_id":"anthropic-search","selected_backend_id":"anthropic-messages","delegated_agent_id":null,"grant_refs":["ffffffff-ffff-4fff-8fff-fffffffffff1"],"policy_version":"personal-v2","catalog_version":"catalog-v2","reason_code":"matching_task_grant","notice":"Illustrative
+                authorized direct search; no actual request was made.","created_at":"2026-10-17T02:00:00Z"}],"approval":null,"status":"completed","execution_backend_id":"anthropic-messages","native_job_id":null,"external_status":"completed","bounds_mode":"strict","execution_controls":{"strict_bounds_supported":true,"supported_controls":["harness_invocations","tool_operations","deadline","context_isolation","delegation_disabled"],"max_internal_model_invocations":1,"max_internal_tool_operations":1,"max_job_seconds":120,"job_deadline_enforced":true,"tool_permission_gate":"before_each","context_isolation":"verified","notes":"Illustrative
+                deterministic mock control mapping, not a tested live backend."},"deadline_at":"2026-10-17T02:00:45Z","result":"Illustrative
+                search result; support has not been assessed.","sources":[{"claim":"The source discusses the supplied
+                claim.","reference":"https://example.com/source","provenance":"provider_tool","retrieval_status":"retrieved","retrieved_at":"2026-10-17T02:00:01Z","tool_execution_id":"eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1","origin":"https://example.com","location":"Illustrative
+                retrieved excerpt","support_status":"unassessed","assessment_method":"none","support_checked_at":null,"assessment_note":"Retrieved
+                does not mean verified."}],"usage":{"harness_invocations":1,"tool_operations_observed":1,"native_jobs_started":0,"internal_usage_visibility":"complete","internal_model_invocations":0,"internal_tool_operations":0,"input_tokens":null,"output_tokens":null,"reserved_output_tokens":0,"token_scope":"simulated","accounting":"simulated","estimated_cost_usd":0,"cost_scope":"simulated","pricing_version":null},"limitations":["Hypothetical
+                response shape only; no live tool integration is implemented."],"created_at":"2026-10-17T02:00:00Z","updated_at":"2026-10-17T02:00:01Z","finished_at":"2026-10-17T02:00:01Z"}}
 
 
                 '
@@ -375,10 +392,10 @@ paths:
       tags: [Conversations]
       operationId: exportConversation
       summary: Export portable version-1 JSON after all conversation runs terminate
-      description: Contains user content; disclose before download. Excludes keys, cookies, CSRF tokens, raw HTTP
-        payloads, infrastructure logs, and private reasoning. Any active run in this conversation returns 409. Import
-        is outside MVP. Includes root/child lineage, concise tasks/results/spawn denials and all invocation accounting;
-        no hidden reasoning or raw provider tool payloads.
+      description: Full logical version-1 export includes every terminal run tree, route/tool/approval/source record
+        and scoped usage, not first-page previews. Contains user/task text; disclose before download. Exclude credentials/cookies/CSRF/raw
+        vendor/hidden reasoning data. Any active/waiting/approval run returns 409. Unknown/orphaned external work
+        may remain after local cancellation/deletion.
       responses:
         '200':
           description: Full logical conversation export, not a paginated list.
@@ -394,6 +411,124 @@ paths:
         '401': {$ref: '#/components/responses/Error'}
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /capabilities:
+    get:
+      tags: [Providers]
+      operationId: listCapabilities
+      summary: Page compatible tool/profile/backend metadata without executing tools
+      description: Filter by registered metadata. Compatibility evidence/readiness/auth/grants/egress/observability
+        are separate; no claim of universal tool/model/mode support. Cursors bind catalog version and filters.
+      parameters:
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
+      - {$ref: '#/components/parameters/CatalogQuery'}
+      - {$ref: '#/components/parameters/ProviderFilter'}
+      - {$ref: '#/components/parameters/ProfileFilter'}
+      - {$ref: '#/components/parameters/BackendFilter'}
+      - {$ref: '#/components/parameters/BackendKindFilter'}
+      responses:
+        '200':
+          description: Versioned paginated capability registry.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/CapabilityPage'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /runtime-policy:
+    get:
+      tags: [Providers]
+      operationId: getRuntimePolicy
+      summary: Read versioned personal defaults and finite deployment ceilings
+      description: No mutation or provider calls. Requests cannot raise server ceilings; snapshot the effective
+        version and reject stale/incompatible admission.
+      responses:
+        '200':
+          description: Current effective server policy.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RuntimePolicy'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /runs/{run_id}/tool-executions:
+    parameters:
+    - {$ref: '#/components/parameters/RunId'}
+    get:
+      tags: [Runs]
+      operationId: listToolExecutions
+      summary: Page all tool executions and their route/approval records
+      description: Read-only stable execution sequence; updated status may change while paging. No silent omission
+        from full exports; no tool execution/resume. Cursors are run scoped.
+      parameters:
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
+      responses:
+        '200':
+          description: Current execution records in stable sequence.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ToolExecutionPage'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /runs/{run_id}/tool-approvals:
+    parameters:
+    - {$ref: '#/components/parameters/RunId'}
+    post:
+      tags: [Runs]
+      operationId: decideToolApproval
+      summary: Record human approval or denial of one pending exact action
+      description: Verify session/CSRF/Origin, pending record/run/caller/tool/profile/backend/task/policy bindings,
+        exact argument digest, expiry and current run state. Same key/payload replays; changed decision/payload
+        or stale/mismatched action returns 409. Approval never expands frozen allowlists or bypasses compatibility/budget.
+        Consent is not execution. Models cannot invoke this browser-authorized operation or mint grants. Approval
+        control surfaces and credentials are isolated from agent tools. Freeze initial scope; recheck current grant
+        validity/revocation before execution. An action-scoped approval cannot widen tools/backends/profiles/destinations;
+        broader changes need a new run.
+      security:
+      - cookieAuth: []
+        csrfToken: []
+      parameters:
+      - {$ref: '#/components/parameters/Origin'}
+      - name: Idempotency-Key
+        in: header
+        required: true
+        schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ToolApprovalInput'}
+            examples:
+              approveExactAction:
+                value: {approval_request_id: ffffffff-ffff-4fff-8fff-fffffffffff2, tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1,
+                  argument_digest: 'sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea', decision: approve}
+      responses:
+        '200':
+          description: Stable exact-action decision, including idempotent replay.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ToolApprovalResult'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
         default: {$ref: '#/components/responses/Error'}
 components:
   securitySchemes:
@@ -440,6 +575,32 @@ components:
       name: limit
       in: query
       schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+    CatalogQuery:
+      name: q
+      in: query
+      required: false
+      schema: {type: string, maxLength: 200, minLength: 1}
+      description: Search registered metadata; query is not sent to a provider.
+    ProviderFilter:
+      name: provider
+      in: query
+      required: false
+      schema: {$ref: '#/components/schemas/Provider'}
+    ProfileFilter:
+      name: profile_id
+      in: query
+      required: false
+      schema: {$ref: '#/components/schemas/ProfileId'}
+    BackendFilter:
+      name: backend_id
+      in: query
+      required: false
+      schema: {$ref: '#/components/schemas/BackendId'}
+    BackendKindFilter:
+      name: backend_kind
+      in: query
+      required: false
+      schema: {$ref: '#/components/schemas/BackendKind'}
   responses:
     Error:
       description: 'Standard safe error envelope. 400 malformed request/cursor/event ID;
@@ -529,7 +690,11 @@ components:
   schemas:
     Provider:
       type: string
-      enum: [openai, anthropic, gemini]
+      maxLength: 80
+      minLength: 1
+      pattern: ^[a-z][a-z0-9_.:-]*$
+      description: Open registered provider ID, not an enum. Initial targets are openai, anthropic and gemini; custom
+        IDs require a validated operator-installed adapter manifest.
     Session:
       type: object
       additionalProperties: false
@@ -539,48 +704,59 @@ components:
     ProviderConfig:
       type: object
       additionalProperties: false
-      required: [provider, profiles]
+      required: [provider, label, adapter_manifest_version, profiles]
       properties:
         provider: {$ref: '#/components/schemas/Provider'}
+        label: {type: string, maxLength: 100, minLength: 1}
+        adapter_manifest_version: {type: string, maxLength: 200, minLength: 1}
         profiles:
           type: array
           items: {$ref: '#/components/schemas/ModelProfile'}
           minItems: 0
-          maxItems: 100
-      description: One provider with zero or more configured profile definitions; profile IDs are globally unique
-        across the catalog. No discovery/provider calls occur here.
+      description: Operator-registered adapter with configured profiles. Profile IDs are globally unique; profile
+        counts are bounded by deployment policy, not a product-wide constant.
     ProviderList:
       type: object
       additionalProperties: false
-      required: [live_enabled, providers]
+      required: [live_enabled, catalog_version, items, next_cursor]
       properties:
         live_enabled: {type: boolean}
-        providers:
+        catalog_version: {type: string, maxLength: 100, minLength: 1}
+        items:
           type: array
           items: {$ref: '#/components/schemas/ProviderConfig'}
-          minItems: 3
-          maxItems: 3
-          allOf:
-          - contains:
-              properties:
-                provider: {const: openai}
-              required: [provider]
-            minContains: 1
-            maxContains: 1
-          - contains:
-              properties:
-                provider: {const: anthropic}
-              required: [provider]
-            minContains: 1
-            maxContains: 1
-          - contains:
-              properties:
-                provider: {const: gemini}
-              required: [provider]
-            minContains: 1
-            maxContains: 1
-      description: Exactly one entry per provider enum; any provider can offer multiple profiles. No credentials
-        or paid requests.
+          minItems: 0
+          maxItems: 100
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 2048
+      description: Paginated extensible provider registry. Core targets are not a promise that exactly three entries
+        exist or every listed tool is implemented.
+      examples:
+      - live_enabled: false
+        catalog_version: illustrative-v1
+        items:
+        - provider: research-lab
+          label: Illustrative custom provider
+          adapter_manifest_version: example-v1
+          profiles:
+          - profile_id: lab-text
+            model_id: operator-pinned-model
+            safe_input_tokens: 64000
+            readiness: configured
+            delegation_capability: supported
+            execution_backend_id: lab-api
+            execution_controls:
+              strict_bounds_supported: true
+              supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+              max_internal_model_invocations: 1
+              max_internal_tool_operations: 1
+              max_job_seconds: 120
+              job_deadline_enforced: true
+              tool_permission_gate: before_each
+              context_isolation: verified
+              notes: Illustrative deterministic mock control mapping, not a tested live backend.
+        next_cursor: null
     Conversation:
       type: object
       additionalProperties: false
@@ -643,19 +819,27 @@ components:
           type: array
           items: {$ref: '#/components/schemas/AgentDefinition'}
           minItems: 1
-          maxItems: 6
         synthesizer_agent_id:
           type: [string, 'null']
           format: uuid
         delegation: {$ref: '#/components/schemas/DelegationInput'}
         limits: {$ref: '#/components/schemas/RunLimitsInput'}
-      description: Quick has exactly one root and no synthesizer (absent/null). Team has 2–6 roots and a synthesizer_agent_id
-        among them. Enforce unique agent_id values, membership and profile readiness in application validation;
-        repeated profiles/providers are valid. Clients send profile IDs, never model IDs, keys or lineage. Freeze
-        all_history_v1 once; no hidden truncation. Preflight base-stage capacities including bounded delegation
-        input. Reject invalid mode/limit/context/profile combinations with 422 before dispatch. Enable delegation
-        only for compatible profiles; alternate child profiles must be server-configured and explicitly allowlisted.
-        Quick helpers-off uses one call/no retry; helpers-on permits bounded dynamic invocations without root review/synthesis.
+        review_topology:
+          type: string
+          enum: [all_peers]
+          default: all_peers
+        tool_policy: {$ref: '#/components/schemas/ToolPolicyInput'}
+        expected_catalog_version: {type: string, minLength: 1, maxLength: 100}
+        expected_runtime_policy_version: {type: string, minLength: 1, maxLength: 100}
+      description: Quick requires one root and no synthesizer; Team at least two roots and a root synthesizer_agent_id.
+        Repeated providers/profiles are valid; unique IDs/membership/profile/control/grant checks are application
+        invariants. Provider IDs/catalog are extensible. Freeze profiles, backend/capability/policy versions, context
+        and authorized scopes; reject before dispatch if base work cannot fit. all_peers plans 2n+1 base harness
+        calls, not fixed dynamic work. Other review topologies remain future designs. Personal default root count
+        6 may be raised only within advertised deployment ceilings. Client input cannot contain raw model IDs, credentials,
+        lineage, new grants or arbitrary adapter definitions. Live submissions bind the displayed expected_catalog_version
+        and expected_runtime_policy_version; changed registry/policy returns 409 before dispatch. Recheck current
+        grant validity/revocation before every action, without broadening frozen scope.
       allOf:
       - if:
           properties:
@@ -682,56 +866,76 @@ components:
                   required: [enabled]
                   properties:
                     enabled: {const: true}
+          - not:
+              required: [tool_policy]
+              properties:
+                tool_policy:
+                  required: [mode]
+                  properties:
+                    mode: {const: auto}
         then:
           properties:
             limits:
               properties:
-                max_calls: {const: 1}
+                max_harness_invocations: {const: 1}
                 max_retries_per_step: {const: 0}
+      - if:
+          properties:
+            execution_mode: {const: live}
+          required: [execution_mode]
+        then:
+          required: [expected_catalog_version, expected_runtime_policy_version]
     RunLimitsInput:
       type: object
       additionalProperties: false
       required: []
       properties:
-        max_calls: {type: integer, minimum: 1, maximum: 32}
-        concurrency: {type: integer, minimum: 1, maximum: 3, default: 3}
-        per_provider_concurrency: {type: integer, minimum: 1, maximum: 2, default: 2}
-        overall_timeout_seconds: {type: integer, minimum: 15, maximum: 300, default: 300}
-        per_call_timeout_seconds: {type: integer, minimum: 5, maximum: 45, default: 45}
-        max_output_tokens_per_call: {type: integer, minimum: 128, maximum: 2048, default: 2048}
-        total_output_tokens: {type: integer, minimum: 128, maximum: 65536, default: 65536}
+        max_harness_invocations: {type: integer, minimum: 1}
+        max_tool_operations: {type: integer, minimum: 0, default: 64}
+        max_native_jobs: {type: integer, minimum: 0, default: 4}
+        concurrency: {type: integer, minimum: 1, default: 3}
+        per_provider_concurrency: {type: integer, minimum: 1, default: 2}
+        overall_timeout_seconds: {type: integer, minimum: 15, default: 300}
+        per_call_timeout_seconds: {type: integer, minimum: 1, default: 45}
+        max_native_job_seconds: {type: integer, minimum: 1, default: 120}
+        max_output_tokens_per_call: {type: integer, minimum: 1, default: 2048}
+        total_output_tokens: {type: integer, minimum: 1, default: 65536}
         max_retries_per_step: {type: integer, minimum: 0, maximum: 1}
-        max_root_agents: {type: integer, minimum: 1, maximum: 6, default: 6}
-        max_total_agents: {type: integer, minimum: 1, maximum: 12, default: 12}
-        max_spawned_agents: {type: integer, minimum: 0, maximum: 6, default: 6}
-        max_children_per_agent: {type: integer, minimum: 0, maximum: 2, default: 2}
-        max_depth: {type: integer, minimum: 0, maximum: 2, default: 2}
-      description: Proposed ceilings/defaults. Team and explicit Quick delegation use max_calls=32/retries=1; Quick
-        without helpers uses max_calls=1/retries=0. All other omitted fields use their annotated defaults. Count
-        every dispatched initial, child, continuation and retry invocation. Validate calls/output accommodate the
-        base plan, roots fit max_root_agents/total, per-call deadline <= overall, and per-provider concurrency <=
-        global. Roots have depth 0. Accepted-child count is lifetime, not concurrent. Reserve unfinished required
-        root work before optional retries/delegation; no monetary cap is promised.
+        max_root_agents: {type: integer, minimum: 1, default: 6}
+        max_total_agents: {type: integer, minimum: 1, default: 12}
+        max_spawned_agents: {type: integer, minimum: 0, default: 6}
+        max_children_per_agent: {type: integer, minimum: 0, default: 2}
+        max_depth: {type: integer, minimum: 0, default: 2}
+      description: Personal defaults, not hard-coded product ceilings. Default max_harness_invocations=32/retries=1
+        except Quick with delegation disabled AND tool mode off uses 1/0. All omitted fields normalize under the
+        versioned runtime policy. Requests can exceed personal defaults only within finite deployment ceilings.
+        Validate root/base-stage/output/time/concurrency relationships before dispatch. Harness counts cover only
+        coordinator-scheduled calls, not opaque native internals. Observable operation/job limits govern local admission;
+        remote observations can arrive after execution. Strict routes must enforce requested controls, otherwise
+        decline. Never promise a global internal-call or billing hard cap.
     RunLimits:
       allOf:
       - {$ref: '#/components/schemas/RunLimitsInput'}
-      - required: [max_calls, concurrency, per_provider_concurrency, overall_timeout_seconds, per_call_timeout_seconds,
-          max_output_tokens_per_call, total_output_tokens, max_retries_per_step, max_root_agents, max_total_agents,
-          max_spawned_agents, max_children_per_agent, max_depth]
+      - required: [max_harness_invocations, max_tool_operations, max_native_jobs, concurrency, per_provider_concurrency,
+          overall_timeout_seconds, per_call_timeout_seconds, max_native_job_seconds, max_output_tokens_per_call,
+          total_output_tokens, max_retries_per_step, max_root_agents, max_total_agents, max_spawned_agents, max_children_per_agent,
+          max_depth]
     RunStatus:
       type: string
-      enum: [queued, running, completed, partial, failed, canceled, interrupted]
+      enum: [queued, running, waiting_for_tool, awaiting_approval, waiting_for_children, completed, partial, failed,
+        canceled, interrupted]
     TerminalStatus:
       type: string
       enum: [completed, partial, failed, canceled, interrupted]
     StepStatus:
       type: string
-      enum: [queued, running, waiting_for_children, completed, failed, skipped, timed_out, canceled, interrupted]
+      enum: [queued, running, waiting_for_children, waiting_for_tool, awaiting_approval, completed, failed, skipped,
+        timed_out, canceled, interrupted]
     AgentSnapshot:
       type: object
       additionalProperties: false
       required: [agent_id, name, profile_id, role, provider, model_id, safe_input_tokens, delegation_capability,
-        parent_agent_id, root_agent_id, depth, task, child_agent_ids, status]
+        parent_agent_id, root_agent_id, depth, task, child_agent_ids, status, execution_backend_id]
       properties:
         agent_id: {type: string, format: uuid}
         name: {type: string, minLength: 1, maxLength: 80}
@@ -747,7 +951,7 @@ components:
           type: [string, 'null']
           format: uuid
         root_agent_id: {type: string, format: uuid}
-        depth: {type: integer, minimum: 0, maximum: 2}
+        depth: {type: integer, minimum: 0}
         task:
           type: [string, 'null']
           maxLength: 4000
@@ -755,9 +959,9 @@ components:
           type: array
           items: {type: string, format: uuid}
           minItems: 0
-          maxItems: 2
           uniqueItems: true
         status: {$ref: '#/components/schemas/AgentStatus'}
+        execution_backend_id: {$ref: '#/components/schemas/BackendId'}
       description: Run-scoped runtime identity. Roots have parent null, root_agent_id=self, depth=0 and task=null;
         children have an existing parent, inherited root ID, depth=parent+1 and bounded assigned task. Validate
         acyclic same-run links, unique IDs, reciprocal child lists and lifetime quotas in application logic. Identical
@@ -794,29 +998,50 @@ components:
     Usage:
       type: object
       additionalProperties: false
-      required: [attempts_dispatched, input_tokens, output_tokens, reserved_output_tokens, accounting, estimated_cost_usd]
+      required: [harness_invocations, tool_operations_observed, native_jobs_started, internal_usage_visibility,
+        internal_model_invocations, internal_tool_operations, input_tokens, output_tokens, reserved_output_tokens,
+        token_scope, accounting, estimated_cost_usd, cost_scope, pricing_version]
       properties:
-        attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
+        harness_invocations: {type: integer, minimum: 0}
+        tool_operations_observed: {type: integer, minimum: 0}
+        native_jobs_started: {type: integer, minimum: 0}
+        internal_usage_visibility:
+          type: string
+          enum: [complete, partial, opaque, unknown]
+        internal_model_invocations:
+          type: [integer, 'null']
+          minimum: 0
+        internal_tool_operations:
+          type: [integer, 'null']
+          minimum: 0
         input_tokens:
           type: [integer, 'null']
           minimum: 0
         output_tokens:
           type: [integer, 'null']
           minimum: 0
-        reserved_output_tokens: {type: integer, minimum: 0, maximum: 65536}
+        reserved_output_tokens: {type: integer, minimum: 0}
+        token_scope:
+          type: string
+          enum: [harness_only, whole_tree, partial, unknown, simulated]
         accounting:
           type: string
-          enum: [reported, conservative, unknown]
+          enum: [reported, conservative, unknown, simulated]
         estimated_cost_usd:
           type: [number, 'null']
           minimum: 0
+        cost_scope:
+          type: string
+          enum: [reported_total, observed_only, partial, unknown, simulated]
         pricing_version:
           type: [string, 'null']
           maxLength: 200
-      description: Reported, conservative or unknown accounting across roots, descendants, parent continuations
-        and retries. Missing usage/cost stays null, never assumed zero. Retain output reservations for uncertain
-        sent/timed-out invocations. All aggregates include every dispatched invocation; estimated cost is not a
-        billing guarantee.
+      description: Scope-aware ledger. Harness invocations count calls the coordinator dispatches, including initial/child/continuation/retry
+        calls and one outer native-job launch; do not infer internal calls from that count. Observed tool operations/native
+        jobs are distinct counters. Nullable internal counts/cost remain unknown, never zero by assumption. Whole-tree
+        totals require actual complete reporting; opaque SDK/server-tool work may remain incomplete. Remote observations
+        can arrive after local admission/cancellation; keep them separately reconcilable without resuming the workflow.
+        Cost is an estimate, never a billing guarantee. Simulation is labeled explicitly.
     NormalizedFailure:
       type: object
       additionalProperties: false
@@ -831,13 +1056,42 @@ components:
     Source:
       type: object
       additionalProperties: false
-      required: [claim, reference, provenance, status]
+      required: [claim, reference, provenance, retrieval_status, retrieved_at, tool_execution_id, origin, location,
+        support_status, assessment_method, support_checked_at, assessment_note]
       properties:
         claim: {type: string, maxLength: 2000}
         reference: {type: string, maxLength: 2048}
-        provenance: {type: string, const: model_supplied}
-        status: {type: string, const: unverified}
-      description: Inert model-proposed reference; MVP did not fetch or check it. A URL is not evidence of support.
+        provenance:
+          type: string
+          enum: [model_supplied, provider_tool, host_tool, user_supplied, mcp_tool]
+        retrieval_status:
+          type: string
+          enum: [not_retrieved, retrieved, failed, unknown]
+        retrieved_at:
+          type: [string, 'null']
+          format: date-time
+        tool_execution_id:
+          type: [string, 'null']
+          format: uuid
+        origin:
+          type: [string, 'null']
+          maxLength: 2048
+        location:
+          type: [string, 'null']
+          maxLength: 2000
+        support_status:
+          type: string
+          enum: [unassessed, supported, disputed, insufficient, unknown]
+        assessment_method:
+          type: string
+          enum: [none, model_review, human_review, source_comparison]
+        support_checked_at:
+          type: [string, 'null']
+          format: date-time
+        assessment_note: {type: string, maxLength: 2000}
+      description: 'Retrieval and claim support are separate: retrieved is never automatically verified. Preserve
+        exact source origin/location/time and checking method. A model opinion is not ground truth. Model-supplied
+        URLs start not_retrieved/unassessed.'
     Finding:
       type: object
       additionalProperties: false
@@ -861,12 +1115,11 @@ components:
           enum: [draft, review, synthesis, helper]
         provider: {$ref: '#/components/schemas/Provider'}
         status: {$ref: '#/components/schemas/StepStatus'}
-        attempts: {type: integer, minimum: 0, maximum: 32}
+        attempts: {type: integer, minimum: 0}
         invocations:
           type: array
           items: {$ref: '#/components/schemas/InvocationSnapshot'}
           minItems: 0
-          maxItems: 32
         output:
           type: [string, 'null']
           maxLength: 65536
@@ -885,16 +1138,17 @@ components:
           oneOf:
           - {$ref: '#/components/schemas/NormalizedFailure'}
           - {type: 'null'}
-      description: Unique logical stage/task identity; provider alone never identifies a step. attempts equals dispatched
-        initial/continuation/retry invocations for this step. Parent waiting releases global/provider concurrency
-        slots while retaining reservations. All run invocation counts sum within max_calls. Helper steps are not
-        extra root reviews/votes; bounded final task results only, no tool payloads or private reasoning.
+      description: Unique stage/task identity. attempts counts coordinator-dispatched harness invocations for this
+        step, including resumes/retries, not opaque internal model calls. Waiting for children/tools/approval releases
+        local execution permits; deadline/reservations remain. Sum actual harness calls within effective policy;
+        helper work is not a root vote. No raw vendor/private reasoning traces.
     RunSnapshot:
       type: object
       additionalProperties: false
       required: [id, conversation_id, user_message_id, mode, execution_mode, status, root_agent_ids, agents, synthesizer_agent_id,
         delegation, context, prompt_version, limits, base_planned_calls, steps, spawn_decisions, final_answer, presentation,
-        limitations, usage, created_at, finished_at, last_event_sequence]
+        limitations, usage, created_at, finished_at, last_event_sequence, review_topology, runtime_policy_version,
+        catalog_version, tool_policy, tool_executions, tool_executions_next_cursor, external_work_status]
       properties:
         id: {type: string, format: uuid}
         conversation_id: {type: string, format: uuid}
@@ -910,13 +1164,11 @@ components:
           type: array
           items: {type: string, format: uuid}
           minItems: 1
-          maxItems: 6
           uniqueItems: true
         agents:
           type: array
           items: {$ref: '#/components/schemas/AgentSnapshot'}
           minItems: 1
-          maxItems: 12
         synthesizer_agent_id:
           type: [string, 'null']
           format: uuid
@@ -924,14 +1176,11 @@ components:
         context: {$ref: '#/components/schemas/ContextSnapshot'}
         prompt_version: {type: string, minLength: 1, maxLength: 100}
         limits: {$ref: '#/components/schemas/RunLimits'}
-        base_planned_calls:
-          type: integer
-          enum: [1, 5, 7, 9, 11, 13]
+        base_planned_calls: {type: integer, minimum: 1}
         steps:
           type: array
           items: {$ref: '#/components/schemas/StepSnapshot'}
           minItems: 0
-          maxItems: 19
         spawn_decisions:
           type: array
           items: {$ref: '#/components/schemas/SpawnDecision'}
@@ -955,15 +1204,32 @@ components:
           type: [string, 'null']
           format: date-time
         last_event_sequence: {type: integer, minimum: 1}
-      description: All root/descendant identities, tasks, bounded outputs and visible spawn denials belong in snapshot/export.
-        base_planned_calls describes root work only, not the dynamic total; actual usage counts every initial/child/continuation/retry
-        call. Root IDs, agent IDs and step/invocation IDs are unique in their scopes; links are acyclic and consistent.
-        Completed requires all required root and accepted-child work; any accepted child failure/missing Team stage/fallback
-        is partial, except cancel/interruption overrides. Zero successful root drafts fails; child outputs are not
-        substitute root votes. Denied optional spawns alone do not imply partial. Failed synthesizer is never silently
-        replaced. Cancellation/terminal roots cancel descendants; late callbacks cannot replace a terminal result.
-        Restart interrupts every unfinished run/agent/step without auto-resume. Active runs have null finished_at.
-        No credentials, hidden reasoning or vendor debug traces.
+        review_topology:
+          type: string
+          enum: [all_peers]
+        runtime_policy_version: {type: string, maxLength: 100, minLength: 1}
+        catalog_version: {type: string, maxLength: 100, minLength: 1}
+        tool_policy: {$ref: '#/components/schemas/ToolPolicy'}
+        tool_executions:
+          type: array
+          items: {$ref: '#/components/schemas/ToolExecution'}
+          minItems: 0
+          maxItems: 100
+        tool_executions_next_cursor:
+          type: [string, 'null']
+          maxLength: 2048
+        external_work_status:
+          type: string
+          enum: [none, settled, unknown, orphaned]
+      description: Snapshot of frozen identities/profiles/backends/context/policy/grants plus effective personal/deployment
+        limits. Agent/step/spawn counts obey dynamic runtime policy, not fixed product ceilings. base_planned_calls
+        counts all_peers root harness work only; usage distinguishes observed harness/tool/job counts from nullable
+        internal usage. Tool history is a first-page preview with a cursor; paginated tool records and full export
+        preserve all routes/approvals/results. Completed means authorized required workflow completion, never factual
+        correctness. Accepted-child failure/missing Team work/fallback is partial; zero successful root drafts fails.
+        No silent synthesizer swap. Terminal workflow outcome is immutable; external unknown/orphaned status and
+        usage may be reconciled separately without auto-resume. Keys/private reasoning/raw vendor debug payloads
+        never appear.
       examples:
       - id: 11111111-1111-4111-8111-111111111111
         conversation_id: 33333333-3333-4333-8333-333333333333
@@ -987,6 +1253,7 @@ components:
           task: null
           child_agent_ids: []
           status: completed
+          execution_backend_id: mock-provider-api
         synthesizer_agent_id: null
         delegation:
           enabled: false
@@ -997,7 +1264,6 @@ components:
           input_fit_status: accepted
         prompt_version: mock-v1
         limits:
-          max_calls: 1
           concurrency: 3
           per_provider_concurrency: 2
           overall_timeout_seconds: 300
@@ -1010,6 +1276,10 @@ components:
           max_spawned_agents: 6
           max_children_per_agent: 2
           max_depth: 2
+          max_harness_invocations: 1
+          max_tool_operations: 64
+          max_native_jobs: 4
+          max_native_job_seconds: 120
         base_planned_calls: 1
         steps:
         - step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
@@ -1024,41 +1294,96 @@ components:
             retry_of_invocation_id: null
             status: completed
             usage:
-              attempts_dispatched: 1
+              harness_invocations: 1
+              tool_operations_observed: 0
+              native_jobs_started: 0
+              internal_usage_visibility: complete
+              internal_model_invocations: 0
+              internal_tool_operations: 0
               input_tokens: 12
               output_tokens: 10
               reserved_output_tokens: 0
-              accounting: reported
+              token_scope: simulated
+              accounting: simulated
               estimated_cost_usd: 0
+              cost_scope: simulated
+              pricing_version: null
             failure: null
             started_at: '2026-10-17T02:00:00Z'
             finished_at: '2026-10-17T02:00:01Z'
             resumes_after_invocation_id: null
+            execution_backend_id: mock-provider-api
+            external_status: not_started
+            native_job_id: null
+            bounds_mode: strict
+            execution_controls:
+              strict_bounds_supported: true
+              supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+              max_internal_model_invocations: 1
+              max_internal_tool_operations: 1
+              max_job_seconds: 120
+              job_deadline_enforced: true
+              tool_permission_gate: before_each
+              context_isolation: verified
+              notes: Illustrative deterministic mock control mapping, not a tested live backend.
+            deadline_at: '2026-10-17T02:00:45Z'
           output: Simulated answer; no live model was called.
           findings: []
           sources: []
           usage:
-            attempts_dispatched: 1
+            harness_invocations: 1
+            tool_operations_observed: 0
+            native_jobs_started: 0
+            internal_usage_visibility: complete
+            internal_model_invocations: 0
+            internal_tool_operations: 0
             input_tokens: 12
             output_tokens: 10
             reserved_output_tokens: 0
-            accounting: reported
+            token_scope: simulated
+            accounting: simulated
             estimated_cost_usd: 0
+            cost_scope: simulated
+            pricing_version: null
           failure: null
         spawn_decisions: []
         final_answer: Simulated answer; no live model was called.
         presentation: quick_unreviewed
         limitations: [Unreviewed simulated response; mock cost is zero because no provider requests occur.]
         usage:
-          attempts_dispatched: 1
+          harness_invocations: 1
+          tool_operations_observed: 0
+          native_jobs_started: 0
+          internal_usage_visibility: complete
+          internal_model_invocations: 0
+          internal_tool_operations: 0
           input_tokens: 12
           output_tokens: 10
           reserved_output_tokens: 0
-          accounting: reported
+          token_scope: simulated
+          accounting: simulated
           estimated_cost_usd: 0
+          cost_scope: simulated
+          pricing_version: null
         created_at: '2026-10-17T02:00:00Z'
         finished_at: '2026-10-17T02:00:01Z'
         last_event_sequence: 3
+        review_topology: all_peers
+        runtime_policy_version: personal-v2
+        catalog_version: mock-catalog-v2
+        tool_policy:
+          mode: 'off'
+          allowed_tool_ids: []
+          allowed_backend_ids: []
+          allowed_profile_ids: []
+          grant_refs: []
+          missing_grant: pause
+          bounds_mode: strict
+          required_controls: [deadline, context_isolation]
+          allow_unknown_internal_usage: false
+        tool_executions: []
+        tool_executions_next_cursor: null
+        external_work_status: none
     TerminalRunSnapshot:
       allOf:
       - {$ref: '#/components/schemas/RunSnapshot'}
@@ -1074,7 +1399,8 @@ components:
         sequence: {type: integer, minimum: 1}
         type:
           type: string
-          enum: [run.started, agent.created, agent.updated, step.updated, spawn.decided, run.finished]
+          enum: [run.started, agent.created, agent.updated, step.updated, spawn.decided, run.finished, route.decided,
+            tool.updated, tool.approval_decided, external.reconciled]
         at: {type: string, format: date-time}
         data: {type: object}
       allOf:
@@ -1092,9 +1418,7 @@ components:
                 status:
                   type: string
                   enum: [queued, running]
-                base_planned_calls:
-                  type: integer
-                  enum: [1, 5, 7, 9, 11, 13]
+                base_planned_calls: {type: integer, minimum: 1}
       - if:
           properties:
             type: {const: agent.created}
@@ -1111,7 +1435,7 @@ components:
                   type: [string, 'null']
                   format: uuid
                 root_agent_id: {type: string, format: uuid}
-                depth: {type: integer, minimum: 0, maximum: 2}
+                depth: {type: integer, minimum: 0}
                 status: {$ref: '#/components/schemas/AgentStatus'}
                 name: {type: string, minLength: 1, maxLength: 80}
                 profile_id: {$ref: '#/components/schemas/ProfileId'}
@@ -1135,7 +1459,7 @@ components:
                   type: [string, 'null']
                   format: uuid
                 root_agent_id: {type: string, format: uuid}
-                depth: {type: integer, minimum: 0, maximum: 2}
+                depth: {type: integer, minimum: 0}
                 status: {$ref: '#/components/schemas/AgentStatus'}
                 name: {type: string, minLength: 1, maxLength: 80}
                 profile_id: {$ref: '#/components/schemas/ProfileId'}
@@ -1152,30 +1476,29 @@ components:
             data:
               type: object
               additionalProperties: false
-              required: [agent_id, parent_agent_id, root_agent_id, depth, step_id, stage, provider, status, attempts_dispatched,
-                run_attempts_dispatched]
+              required: [agent_id, parent_agent_id, root_agent_id, depth, step_id, stage, provider, status, harness_invocations,
+                run_harness_invocations]
               properties:
                 agent_id: {type: string, format: uuid}
                 parent_agent_id:
                   type: [string, 'null']
                   format: uuid
                 root_agent_id: {type: string, format: uuid}
-                depth: {type: integer, minimum: 0, maximum: 2}
+                depth: {type: integer, minimum: 0}
                 step_id: {type: string, format: uuid}
                 stage:
                   type: string
                   enum: [draft, review, synthesis, helper]
                 provider: {$ref: '#/components/schemas/Provider'}
                 status: {$ref: '#/components/schemas/StepStatus'}
-                attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
                 output:
                   type: [string, 'null']
                   maxLength: 65536
                 usage: {$ref: '#/components/schemas/Usage'}
-                run_attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
-              description: Lineage and exact step/run dispatched counts. A completed helper update includes its
-                concise output and normalized usage; fetch the snapshot for full artifacts. No token-by-token stream
-                or hidden reasoning.
+                harness_invocations: {type: integer, minimum: 0}
+                run_harness_invocations: {type: integer, minimum: 0}
+              description: Lineage and step/run harness counts only; completed helper output/usage is scoped. Opaque
+                internals may be unknown. Waiting tools/approval release permits; no private reasoning.
               allOf:
               - if:
                   properties:
@@ -1202,13 +1525,60 @@ components:
             data:
               type: object
               additionalProperties: false
-              required: [status, attempts_dispatched]
+              required: [status, harness_invocations, external_work_status]
               properties:
                 status: {$ref: '#/components/schemas/TerminalStatus'}
-                attempts_dispatched: {type: integer, minimum: 0, maximum: 32}
-      description: Numeric SSE sequence is run-scoped. Agent/step events expose identity/lineage; spawn decisions
-        contain concise tasks and visible denials. No raw tool transcripts, token streams or hidden reasoning. Persist
-        transition+event atomically; terminal run.finished closes the stream.
+                harness_invocations: {type: integer, minimum: 0}
+                external_work_status:
+                  type: string
+                  enum: [none, settled, unknown, orphaned]
+      - if:
+          properties:
+            type: {const: route.decided}
+          required: [type]
+        then:
+          properties:
+            data: {$ref: '#/components/schemas/RouteDecision'}
+      - if:
+          properties:
+            type: {const: tool.updated}
+          required: [type]
+        then:
+          properties:
+            data: {$ref: '#/components/schemas/ToolExecution'}
+      - if:
+          properties:
+            type: {const: tool.approval_decided}
+          required: [type]
+        then:
+          properties:
+            data: {$ref: '#/components/schemas/ToolApprovalResult'}
+      - if:
+          properties:
+            type: {const: external.reconciled}
+          required: [type]
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [tool_execution_id, invocation_id, external_status, usage, notice]
+              properties:
+                tool_execution_id:
+                  type: [string, 'null']
+                  format: uuid
+                invocation_id:
+                  type: [string, 'null']
+                  format: uuid
+                external_status: {$ref: '#/components/schemas/ExternalWorkStatus'}
+                usage: {$ref: '#/components/schemas/Usage'}
+                notice: {type: string, maxLength: 2000}
+              description: Read-only external status/metering reconciliation, not auto-resume. Exactly one target
+                ID is nonnull; validate it belongs to this run.
+      description: Run-scoped durable numeric sequence. Lineage, routes, exact-action approvals and bounded tool
+        results are typed events. Scope counters to observable harness/operations/jobs; never infer hidden internal
+        work. Terminal state stays immutable; separately labeled external reconciliation can append records without
+        restarting work.
     ConversationExport:
       type: object
       additionalProperties: false
@@ -1223,9 +1593,9 @@ components:
         runs:
           type: array
           items: {$ref: '#/components/schemas/TerminalRunSnapshot'}
-      description: Logical export includes all terminal run agent trees, concise child tasks/results/denials, base
-        plan and actual invocation accounting. Excludes credentials, cookies, CSRF tokens, debug payloads and hidden
-        reasoning. Not forensic erasure or import format.
+      description: Complete logical terminal-run export, including all tool execution pages, routes, human decisions,
+        source retrieval/support provenance, descendants and scoped usage. No credentials/raw vendor/private reasoning
+        traces. Does not imply remote work was canceled or external data erased.
     ErrorEnvelope:
       type: object
       additionalProperties: false
@@ -1240,7 +1610,8 @@ components:
               type: string
               enum: [invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress,
                 idempotency_conflict, body_too_large, validation_failed, context_too_large, live_disabled, rate_limited,
-                internal_error, profile_not_configured, delegation_not_supported]
+                internal_error, profile_not_configured, delegation_not_supported, capability_unavailable, tool_not_allowed,
+                grant_not_found, approval_conflict, backend_not_ready, unsupported_bounds, runtime_policy_changed]
             message: {type: string, maxLength: 500}
             request_id: {type: string, format: uuid}
             details:
@@ -1267,7 +1638,8 @@ components:
     ModelProfile:
       type: object
       additionalProperties: false
-      required: [profile_id, model_id, safe_input_tokens, readiness, delegation_capability]
+      required: [profile_id, model_id, safe_input_tokens, readiness, delegation_capability, execution_backend_id,
+        execution_controls]
       properties:
         profile_id: {$ref: '#/components/schemas/ProfileId'}
         model_id:
@@ -1281,8 +1653,11 @@ components:
           type: string
           enum: [configured, missing]
         delegation_capability: {$ref: '#/components/schemas/DelegationCapability'}
-      description: Catalog metadata only, never keys or a live availability assertion. Missing means credential,
-        model or conservative capacity mapping is absent. Multiple profiles may use one provider/model.
+        execution_backend_id: {$ref: '#/components/schemas/BackendId'}
+        execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
+      description: Server-configured profile and backend/capacity/control metadata. Repeated provider/model/profile
+        agents remain distinct. Readiness is configuration only; keys and raw auth state never appear. Missing capacities/control
+        mappings make a demanding route ineligible.
       allOf:
       - if:
           properties:
@@ -1313,7 +1688,6 @@ components:
           type: array
           items: {$ref: '#/components/schemas/ProfileId'}
           minItems: 0
-          maxItems: 100
           uniqueItems: true
       description: 'Defaults: Team enabled, Quick disabled; allowed_profile_ids empty. The allowlist grants alternate
         child profiles only; inheritance uses the parent profile. Resolve and freeze permission at run admission.
@@ -1324,12 +1698,14 @@ components:
       - required: [enabled, allowed_profile_ids]
     AgentStatus:
       type: string
-      enum: [queued, running, waiting_for_children, completed, failed, canceled, interrupted]
+      enum: [queued, running, waiting_for_children, waiting_for_tool, awaiting_approval, completed, failed, canceled,
+        interrupted]
     InvocationSnapshot:
       type: object
       additionalProperties: false
       required: [invocation_id, kind, retry_of_invocation_id, resumes_after_invocation_id, status, usage, failure,
-        started_at, finished_at]
+        started_at, finished_at, execution_backend_id, external_status, native_job_id, bounds_mode, execution_controls,
+        deadline_at]
       properties:
         invocation_id: {type: string, format: uuid}
         kind:
@@ -1355,13 +1731,25 @@ components:
         resumes_after_invocation_id:
           type: [string, 'null']
           format: uuid
+        execution_backend_id: {$ref: '#/components/schemas/BackendId'}
+        external_status: {$ref: '#/components/schemas/ExternalWorkStatus'}
+        native_job_id:
+          type: [string, 'null']
+          maxLength: 200
+        bounds_mode:
+          type: string
+          enum: [strict, bounded_job]
+        execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
+        deadline_at: {type: string, format: date-time}
       description: One reserved/dispatched adapter call. A tool-request response can complete an invocation while
         the step waits; a continuation is a new counted call. Schedule one logical continuation per parent invocation
         response batch, never per duplicate callback; resumes_after_invocation_id identifies it. A bounded safe
         retry may be a separate retry invocation of that continuation. At most one retry per logical step across
         its entire initial/continuation sequence, only a known pre-generation rejection. Initial calls have null
         retry/resume IDs; retries name the rejected invocation. Queued records do not count as dispatched. Cross-record
-        references stay in the same parent step/run.
+        references stay in the same parent step/run. One observable harness invocation can wrap many server-tool/SDK
+        internal operations; usage declares scope rather than treating that whole job as one internal call. Capture
+        native job ID/control/deadline/external status when relevant; unconfirmed remote stop remains unknown/orphaned.
       allOf:
       - if:
           properties:
@@ -1442,7 +1830,9 @@ components:
         request records request=null and a safe notice rather than raw arguments. Acceptance atomically reserves
         child initial work, one logical parent continuation per response batch and remaining required root work.
         Denial itself dispatches no call; a normal continuation still needs budget. Denial alone is not partial;
-        accepted-child failure is.
+        accepted-child failure is. All lifetime/depth/call/output checks use the snapshotted runtime policy. A native
+        opaque backend cannot bypass caller/grant/context restrictions or masquerade its hidden subagents as fully
+        observed harness nodes.
       allOf:
       - if:
           properties:
@@ -1472,3 +1862,851 @@ components:
         notice: Accepted within the run limits; one child call and a parent continuation are reserved.
         created_at: '2026-10-17T02:00:00Z'
         parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+    BackendId: {type: string, maxLength: 100, minLength: 1, pattern: '^[a-z][a-z0-9_.:-]*$'}
+    CapabilityId: {type: string, maxLength: 160, minLength: 1, pattern: '^[a-z][a-z0-9_.:-]*$'}
+    ToolId: {type: string, maxLength: 160, minLength: 1, pattern: '^[a-z][a-z0-9_.:-]*$'}
+    ArgumentDigest: {type: string, maxLength: 71, minLength: 71, pattern: '^sha256:[0-9a-f]{64}$'}
+    BackendKind:
+      type: string
+      enum: [provider_api, agent_sdk_cli, mcp_local, hosted_agent]
+    ExecutionBackend:
+      type: object
+      additionalProperties: false
+      required: [backend_id, kind, version, readiness]
+      properties:
+        backend_id: {$ref: '#/components/schemas/BackendId'}
+        kind: {$ref: '#/components/schemas/BackendKind'}
+        version: {type: string, maxLength: 200, minLength: 1}
+        readiness:
+          type: string
+          enum: [configured, missing_auth, disabled, unsupported, unverified]
+      description: Versioned configured execution route, not a universal provider capability. No credentials or
+        automatic login/discovery calls.
+    CompatibilityEvidence:
+      type: object
+      additionalProperties: false
+      required: [status, checked_at, supported_modes, source_urls, notes]
+      properties:
+        status:
+          type: string
+          enum: [documented, tested, unsupported, unknown]
+        checked_at:
+          type: [string, 'null']
+          format: date-time
+        supported_modes:
+          type: array
+          items: {type: string, maxLength: 80, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        source_urls:
+          type: array
+          items: {type: string, format: uri}
+          minItems: 0
+          maxItems: 20
+        notes: {type: string, maxLength: 2000}
+      description: Documentation evidence is distinct from tested compatibility and current availability. Record
+        exact backend/tool/model/mode versions before marking tested.
+    AuthRequirements:
+      type: object
+      additionalProperties: false
+      required: [methods, status, required_scopes]
+      properties:
+        methods:
+          type: array
+          items: {type: string, maxLength: 80, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        status:
+          type: string
+          enum: [configured, missing, needs_auth, not_required]
+        required_scopes:
+          type: array
+          items: {type: string, maxLength: 200, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+      description: Auth method labels and scope/readiness only. No keys, OAuth/session tokens, raw headers or subscription
+        credentials. API-key and user-authorized unmodified CLI flows remain separate routes.
+    PermissionRequirements:
+      type: object
+      additionalProperties: false
+      required: [required_scopes, side_effect_class, grant_scopes, approval_available]
+      properties:
+        required_scopes:
+          type: array
+          items: {type: string, maxLength: 200, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        side_effect_class:
+          type: string
+          enum: [read_only, reversible_write, external_write, destructive, mixed]
+        grant_scopes:
+          type: array
+          items:
+            type: string
+            enum: [task, session, action]
+          minItems: 0
+          uniqueItems: true
+        approval_available: {type: boolean}
+      description: A matching existing task/session grant can authorize suitable actions without another prompt.
+        Some exact actions require action approval. Model text cannot issue grants.
+    EgressMetadata:
+      type: object
+      additionalProperties: false
+      required: [execution_location, destinations, sends_context, notes]
+      properties:
+        execution_location:
+          type: string
+          enum: [our_host, provider, third_party, mixed]
+        destinations:
+          type: array
+          items: {type: string, maxLength: 2048, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        sends_context: {type: boolean}
+        notes: {type: string, maxLength: 2000}
+      description: Known permitted destination patterns and context flow. Runtime enforces scope, including redirects;
+        self-hosting does not keep remote provider/MCP data local.
+    ObservabilityMetadata:
+      type: object
+      additionalProperties: false
+      required: [internal_usage_visibility, internal_model_counts_available, internal_tool_counts_available, cancellation,
+        notes]
+      properties:
+        internal_usage_visibility:
+          type: string
+          enum: [complete, partial, opaque, unknown]
+        internal_model_counts_available: {type: boolean}
+        internal_tool_counts_available: {type: boolean}
+        cancellation:
+          type: string
+          enum: [confirmed_remote, best_effort, local_only, unavailable]
+        notes: {type: string, maxLength: 2000}
+    ExecutionControls:
+      type: object
+      additionalProperties: false
+      required: [strict_bounds_supported, supported_controls, max_internal_model_invocations, max_internal_tool_operations,
+        max_job_seconds, job_deadline_enforced, tool_permission_gate, context_isolation, notes]
+      properties:
+        strict_bounds_supported: {type: boolean}
+        supported_controls:
+          type: array
+          items: {type: string, maxLength: 100, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        max_internal_model_invocations:
+          type: [integer, 'null']
+          minimum: 0
+        max_internal_tool_operations:
+          type: [integer, 'null']
+          minimum: 0
+        max_job_seconds:
+          type: [integer, 'null']
+          minimum: 1
+        job_deadline_enforced: {type: boolean}
+        tool_permission_gate:
+          type: string
+          enum: [before_each, pre_scoped, unavailable]
+        context_isolation:
+          type: string
+          enum: [verified, unsupported, unknown]
+        notes: {type: string, maxLength: 2000}
+      description: Finite configured/enforceable backend execution caps, or null when unavailable. Strict admission
+        requires every requested control to map to enforcement. Bounded-job use of opaque internals requires explicit
+        opt-in and an enforced job/launch deadline. No monetary guarantee. Enforce delegation_disabled when helpers
+        are off; inability to prevent native helper spawning cannot be excused by opaque-usage opt-in. Direct request/job-launch
+        acknowledgement deadlines are distinct from the supervised native-job lifetime; each job is bounded by remaining
+        run time and its snapshotted execution cap.
+    CapabilityMetadata:
+      type: object
+      additionalProperties: false
+      required: [capability_id, tool_id, provider, profile_id, backend, manifest_version, tool_version, description,
+        compatibility, readiness, authentication, permissions, egress, observability, execution_controls, arguments_schema]
+      properties:
+        capability_id: {$ref: '#/components/schemas/CapabilityId'}
+        tool_id: {$ref: '#/components/schemas/ToolId'}
+        provider: {$ref: '#/components/schemas/Provider'}
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+        backend: {$ref: '#/components/schemas/ExecutionBackend'}
+        manifest_version: {type: string, maxLength: 200, minLength: 1}
+        tool_version: {type: string, maxLength: 200, minLength: 1}
+        description: {type: string, maxLength: 2000}
+        compatibility: {$ref: '#/components/schemas/CompatibilityEvidence'}
+        readiness:
+          type: string
+          enum: [configured, missing_auth, disabled, unsupported, unverified]
+        authentication: {$ref: '#/components/schemas/AuthRequirements'}
+        permissions: {$ref: '#/components/schemas/PermissionRequirements'}
+        egress: {$ref: '#/components/schemas/EgressMetadata'}
+        observability: {$ref: '#/components/schemas/ObservabilityMetadata'}
+        execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
+        arguments_schema: {type: object, description: 'Validated tool JSON Schema supplied by the registered manifest;
+            data, never executable client code.'}
+      description: Versioned tool/profile/backend metadata; not universal support for a provider or model. Catalog
+        reads never call tools or verify credentials.
+    CapabilityPage:
+      type: object
+      additionalProperties: false
+      required: [catalog_version, items, next_cursor]
+      properties:
+        catalog_version: {type: string, maxLength: 100, minLength: 1}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/CapabilityMetadata'}
+          minItems: 0
+          maxItems: 100
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 2048
+    ToolPolicyInput:
+      type: object
+      additionalProperties: false
+      required: []
+      properties:
+        mode:
+          type: string
+          enum: [auto, 'off']
+        allowed_tool_ids:
+          type: array
+          items: {$ref: '#/components/schemas/ToolId'}
+          minItems: 0
+          uniqueItems: true
+        allowed_backend_ids:
+          type: array
+          items: {$ref: '#/components/schemas/BackendId'}
+          minItems: 0
+          uniqueItems: true
+        allowed_profile_ids:
+          type: array
+          items: {$ref: '#/components/schemas/ProfileId'}
+          minItems: 0
+          uniqueItems: true
+        grant_refs:
+          type: array
+          items: {type: string, format: uuid}
+          minItems: 0
+          uniqueItems: true
+        missing_grant:
+          type: string
+          enum: [pause, block]
+          default: pause
+        bounds_mode:
+          type: string
+          enum: [strict, bounded_job]
+          default: strict
+        required_controls:
+          type: array
+          items: {type: string, maxLength: 100, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        allow_unknown_internal_usage: {type: boolean, default: false}
+      description: Team mode defaults auto, Quick off. Allowlist/grant fields default to the user's existing authorized
+        selection (empty if none), resolved and frozen at admission; never implicitly all catalog entries. Models
+        cannot mint grants or add destinations. Auto selects only compatible authorized direct/helper routes. Alternate
+        helper profiles must satisfy relevant delegation/tool permissions. A matching task/session grant avoids
+        needless reapproval. Missing grants pause an exact action or block it; incompatible/forbidden routes cannot
+        be approved into existence. Strict requires enforceable requested bounds; bounded_job plus allow_unknown_internal_usage=true
+        explicitly permits opaque internals under a finite job deadline. Tool-created managed helpers require delegation.enabled.
+        Helpers-off must disable native/runtime helper spawning too; a backend unable to enforce that permission
+        boundary is ineligible even for bounded-job mode. Initial selection/grant references stay frozen; recheck
+        expiration/revocation and required scope before each dispatch. A broader configuration change requires a
+        new run. required_controls is combined with mandatory deployment controls, not a way to remove them. Deadline
+        enforcement scope and remote-cancellation limitations must be disclosed by backend metadata; a local supervisor
+        timeout does not prove remote work stopped.
+      allOf:
+      - if:
+          properties:
+            bounds_mode: {const: bounded_job}
+          required: [bounds_mode]
+        then:
+          required: [allow_unknown_internal_usage]
+          properties:
+            allow_unknown_internal_usage: {const: true}
+      - if:
+          properties:
+            allow_unknown_internal_usage: {const: true}
+          required: [allow_unknown_internal_usage]
+        then:
+          required: [bounds_mode]
+          properties:
+            bounds_mode: {const: bounded_job}
+    ToolPolicy:
+      allOf:
+      - {$ref: '#/components/schemas/ToolPolicyInput'}
+      - required: [mode, allowed_tool_ids, allowed_backend_ids, allowed_profile_ids, grant_refs, missing_grant,
+          bounds_mode, required_controls, allow_unknown_internal_usage]
+    RunLimitCeilings:
+      type: object
+      additionalProperties: false
+      required: [max_harness_invocations, max_tool_operations, max_native_jobs, concurrency, per_provider_concurrency,
+        overall_timeout_seconds, per_call_timeout_seconds, max_native_job_seconds, max_output_tokens_per_call, total_output_tokens,
+        max_retries_per_step, max_root_agents, max_total_agents, max_spawned_agents, max_children_per_agent, max_depth]
+      properties:
+        max_harness_invocations: {type: integer, minimum: 1}
+        max_tool_operations: {type: integer, minimum: 0}
+        max_native_jobs: {type: integer, minimum: 0}
+        concurrency: {type: integer, minimum: 1}
+        per_provider_concurrency: {type: integer, minimum: 1}
+        overall_timeout_seconds: {type: integer, minimum: 15}
+        per_call_timeout_seconds: {type: integer, minimum: 1}
+        max_native_job_seconds: {type: integer, minimum: 1}
+        max_output_tokens_per_call: {type: integer, minimum: 1}
+        total_output_tokens: {type: integer, minimum: 1}
+        max_retries_per_step: {type: integer, minimum: 0, maximum: 1}
+        max_root_agents: {type: integer, minimum: 1}
+        max_total_agents: {type: integer, minimum: 1}
+        max_spawned_agents: {type: integer, minimum: 0}
+        max_children_per_agent: {type: integer, minimum: 0}
+        max_depth: {type: integer, minimum: 0}
+      description: Finite operator-enforced ceilings for each request bound. Values are deployment configuration,
+        not user/model authority; defaults and effective limits must not exceed them. All counts/deadlines are finite
+        integers.
+    RuntimePolicy:
+      type: object
+      additionalProperties: false
+      required: [policy_version, updated_at, defaults, deployment_ceilings, default_tool_modes, default_delegation,
+        review_topologies, required_controls]
+      properties:
+        policy_version: {type: string, maxLength: 100, minLength: 1}
+        updated_at: {type: string, format: date-time}
+        defaults: {$ref: '#/components/schemas/RunLimits'}
+        deployment_ceilings: {$ref: '#/components/schemas/RunLimitCeilings'}
+        default_tool_modes:
+          type: object
+          additionalProperties: false
+          required: [quick, team]
+          properties:
+            quick: {type: string, const: 'off'}
+            team: {type: string, const: auto}
+        default_delegation:
+          type: object
+          additionalProperties: false
+          required: [quick, team]
+          properties:
+            quick: {type: boolean, const: false}
+            team: {type: boolean, const: true}
+        review_topologies:
+          type: array
+          items:
+            type: string
+            enum: [all_peers]
+          minItems: 1
+          uniqueItems: true
+        required_controls:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 100}
+          uniqueItems: true
+      description: Read-only effective server policy. Future topology/ceiling changes need implementation validation;
+        clients cannot increase ceilings by sending a policy object. One global active run remains the personal-deployment
+        default. Effective requested controls include the union of mandatory server controls and user-requested
+        controls; a client cannot remove mandatory grant/context/security controls.
+    ExternalWorkStatus:
+      type: string
+      enum: [not_started, running, completed, failed, cancellation_requested, canceled, unknown, orphaned]
+      description: External truth/status is distinct from immutable local workflow state. An unconfirmed stop is
+        unknown/orphaned, never assumed canceled or reversed.
+    ToolInvocationRequest:
+      type: object
+      additionalProperties: false
+      required: [capability_id, arguments]
+      properties:
+        capability_id: {$ref: '#/components/schemas/CapabilityId'}
+        tool_id: {$ref: '#/components/schemas/ToolId'}
+        task: {type: string, maxLength: 4000, minLength: 1}
+        arguments: {type: object, description: 'Validate against the selected registered tool schema and configured
+            byte/depth limits (initial safe default 16 KiB). No auth headers, raw credentials, policy or caller
+            identity fields. Never execute before policy resolution.'}
+      description: Internal model request, not browser authentication or permission. Coordinator supplies caller/run/step/parent
+        invocation/tool-call IDs; optional specific tool does not bypass the frozen capability/profile/backend/grant
+        scope.
+    RouteDecision:
+      type: object
+      additionalProperties: false
+      required: [route_decision_id, tool_execution_id, run_id, agent_id, step_id, parent_invocation_id, provider_tool_call_id,
+        capability_id, route, selected_tool_id, selected_profile_id, selected_backend_id, delegated_agent_id, grant_refs,
+        policy_version, catalog_version, reason_code, notice, created_at]
+      properties:
+        route_decision_id: {type: string, format: uuid}
+        tool_execution_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        agent_id: {type: string, format: uuid}
+        step_id: {type: string, format: uuid}
+        parent_invocation_id: {type: string, format: uuid}
+        provider_tool_call_id: {type: string, maxLength: 200, minLength: 1}
+        capability_id: {$ref: '#/components/schemas/CapabilityId'}
+        route:
+          type: string
+          enum: [direct, delegated, awaiting_approval, blocked, unavailable]
+        selected_tool_id:
+          oneOf:
+          - {$ref: '#/components/schemas/ToolId'}
+          - {type: 'null'}
+        selected_profile_id:
+          oneOf:
+          - {$ref: '#/components/schemas/ProfileId'}
+          - {type: 'null'}
+        selected_backend_id:
+          oneOf:
+          - {$ref: '#/components/schemas/BackendId'}
+          - {type: 'null'}
+        delegated_agent_id:
+          type: [string, 'null']
+          format: uuid
+        grant_refs:
+          type: array
+          items: {type: string, format: uuid}
+          minItems: 0
+          uniqueItems: true
+        policy_version: {type: string, maxLength: 100, minLength: 1}
+        catalog_version: {type: string, maxLength: 100, minLength: 1}
+        reason_code: {type: string, maxLength: 100, minLength: 1}
+        notice: {type: string, maxLength: 2000}
+        created_at: {type: string, format: date-time}
+      description: Durable exact routing decision under frozen policy. Direct chooses a compatible permitted native
+        route; delegated chooses an already approved helper profile/backend. No eligible route is unavailable/blocked,
+        never a new destination or changed root synthesizer. Awaiting approval cannot repair an incompatible/out-of-scope
+        route. Match request identity/digest for replay; distinct decisions may record approval-driven transitions
+        of one execution. Delegated routes require delegation.enabled; auto tool mode cannot override helpers-off
+        or create a hidden managed child.
+    PendingToolApproval:
+      type: object
+      additionalProperties: false
+      required: [approval_request_id, argument_digest, action_preview, required_scopes, created_at, expires_at]
+      properties:
+        approval_request_id: {type: string, format: uuid}
+        argument_digest: {$ref: '#/components/schemas/ArgumentDigest'}
+        action_preview: {type: string, maxLength: 16000, minLength: 1}
+        required_scopes:
+          type: array
+          items: {type: string, maxLength: 200, minLength: 1}
+          minItems: 0
+          uniqueItems: true
+        created_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+      description: One pending exact action bound server-side to run, execution, caller, tool/profile/backend, task
+        and policy version. Preview contains all nonsecret normalized arguments and credential-scope references,
+        never secret values. Changed action requires another pending record; no broad grant.
+    ToolApprovalInput:
+      type: object
+      additionalProperties: false
+      required: [approval_request_id, tool_execution_id, argument_digest, decision]
+      properties:
+        approval_request_id: {type: string, format: uuid}
+        tool_execution_id: {type: string, format: uuid}
+        argument_digest: {$ref: '#/components/schemas/ArgumentDigest'}
+        decision:
+          type: string
+          enum: [approve, deny]
+      description: Human UI response for a pending exact action. CSRF/Origin/session plus Idempotency-Key required.
+        Server verifies all bindings/scope/run state; models cannot approve or mint grants. Approval records consent,
+        not completed execution. The approval UI and its session/CSRF credentials must be inaccessible to agent-controlled
+        browsers, shells and MCP environments; Origin/CSRF alone does not prove a human action.
+    ToolApprovalResult:
+      type: object
+      additionalProperties: false
+      required: [approval_request_id, tool_execution_id, argument_digest, decision, grant_ref, notice, decided_at]
+      properties:
+        approval_request_id: {type: string, format: uuid}
+        tool_execution_id: {type: string, format: uuid}
+        argument_digest: {$ref: '#/components/schemas/ArgumentDigest'}
+        decision:
+          type: string
+          enum: [approve, deny]
+        grant_ref:
+          type: [string, 'null']
+          format: uuid
+        notice: {type: string, maxLength: 2000}
+        decided_at: {type: string, format: date-time}
+      description: Stable decision replay; same idempotency key/payload returns original. Conflicting payload/decision
+        or stale action returns 409. An action-scoped server grant may be created only for a valid human approval;
+        never widen run allowlists. Persist one decision per pending approval; duplicate approval requests/callbacks
+        do not issue another grant, execute again or resume the parent twice.
+    ToolExecution:
+      type: object
+      additionalProperties: false
+      required: [tool_execution_id, sequence, run_id, agent_id, step_id, parent_invocation_id, provider_tool_call_id,
+        request, argument_digest, arguments_preview, route_decisions, approval, status, execution_backend_id, native_job_id,
+        external_status, bounds_mode, execution_controls, deadline_at, result, sources, usage, limitations, created_at,
+        updated_at, finished_at]
+      properties:
+        tool_execution_id: {type: string, format: uuid}
+        sequence: {type: integer, minimum: 1}
+        run_id: {type: string, format: uuid}
+        agent_id: {type: string, format: uuid}
+        step_id: {type: string, format: uuid}
+        parent_invocation_id: {type: string, format: uuid}
+        provider_tool_call_id: {type: string, maxLength: 200, minLength: 1}
+        request:
+          oneOf:
+          - {$ref: '#/components/schemas/ToolInvocationRequest'}
+          - {type: 'null'}
+        argument_digest:
+          oneOf:
+          - {$ref: '#/components/schemas/ArgumentDigest'}
+          - {type: 'null'}
+        arguments_preview: {type: string, maxLength: 16000}
+        route_decisions:
+          type: array
+          items: {$ref: '#/components/schemas/RouteDecision'}
+          minItems: 0
+        approval:
+          oneOf:
+          - {$ref: '#/components/schemas/PendingToolApproval'}
+          - {type: 'null'}
+        status:
+          type: string
+          enum: [routing, awaiting_approval, queued, running, completed, failed, blocked, unavailable, denied, canceled,
+            unknown, orphaned]
+        execution_backend_id:
+          oneOf:
+          - {$ref: '#/components/schemas/BackendId'}
+          - {type: 'null'}
+        native_job_id:
+          type: [string, 'null']
+          maxLength: 200
+        external_status: {$ref: '#/components/schemas/ExternalWorkStatus'}
+        bounds_mode:
+          type: string
+          enum: [strict, bounded_job]
+        execution_controls:
+          oneOf:
+          - {$ref: '#/components/schemas/ExecutionControls'}
+          - {type: 'null'}
+        deadline_at:
+          type: [string, 'null']
+          format: date-time
+        result:
+          type: [string, 'null']
+          maxLength: 65536
+        sources:
+          type: array
+          items: {$ref: '#/components/schemas/Source'}
+          minItems: 0
+        usage: {$ref: '#/components/schemas/Usage'}
+        limitations:
+          type: array
+          items: {type: string, maxLength: 2000}
+          minItems: 0
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+        finished_at:
+          type: [string, 'null']
+          format: date-time
+      description: Bounded normalized action/result ledger, not unrestricted vendor traces. Every execution has
+        stable sequence, caller/invocation identity and exact digest; duplicate callbacks cannot execute twice.
+        Grants/routes and pending approval remain bound to the exact action. Unknown/orphaned external status is
+        not fake cancellation. Results are inert content. Denials alone need not make a run partial; an unfinished
+        required action/stage does. Later external status/metering reconciliation can update this separate record
+        after run terminal state, without changing workflow outcome or launching work.
+      examples:
+      - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        sequence: 1
+        run_id: 11111111-1111-4111-8111-111111111111
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+        provider_tool_call_id: call-search-1
+        request:
+          capability_id: web.search
+          arguments: {query: Source for the supplied public claim}
+        argument_digest: sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea
+        arguments_preview: 'query: Source for the supplied public claim'
+        route_decisions:
+        - route_decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          run_id: 11111111-1111-4111-8111-111111111111
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+          provider_tool_call_id: call-search-1
+          capability_id: web.search
+          route: direct
+          selected_tool_id: anthropic.web_search
+          selected_profile_id: anthropic-search
+          selected_backend_id: anthropic-messages
+          delegated_agent_id: null
+          grant_refs: [ffffffff-ffff-4fff-8fff-fffffffffff1]
+          policy_version: personal-v2
+          catalog_version: catalog-v2
+          reason_code: matching_task_grant
+          notice: Illustrative authorized direct search; no actual request was made.
+          created_at: '2026-10-17T02:00:00Z'
+        approval: null
+        status: completed
+        execution_backend_id: anthropic-messages
+        native_job_id: null
+        external_status: completed
+        bounds_mode: strict
+        execution_controls:
+          strict_bounds_supported: true
+          supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+          max_internal_model_invocations: 1
+          max_internal_tool_operations: 1
+          max_job_seconds: 120
+          job_deadline_enforced: true
+          tool_permission_gate: before_each
+          context_isolation: verified
+          notes: Illustrative deterministic mock control mapping, not a tested live backend.
+        deadline_at: '2026-10-17T02:00:45Z'
+        result: Illustrative search result; support has not been assessed.
+        sources:
+        - claim: The source discusses the supplied claim.
+          reference: https://example.com/source
+          provenance: provider_tool
+          retrieval_status: retrieved
+          retrieved_at: '2026-10-17T02:00:01Z'
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          origin: https://example.com
+          location: Illustrative retrieved excerpt
+          support_status: unassessed
+          assessment_method: none
+          support_checked_at: null
+          assessment_note: Retrieved does not mean verified.
+        usage:
+          harness_invocations: 1
+          tool_operations_observed: 1
+          native_jobs_started: 0
+          internal_usage_visibility: complete
+          internal_model_invocations: 0
+          internal_tool_operations: 0
+          input_tokens: null
+          output_tokens: null
+          reserved_output_tokens: 0
+          token_scope: simulated
+          accounting: simulated
+          estimated_cost_usd: 0
+          cost_scope: simulated
+          pricing_version: null
+        limitations: [Hypothetical response shape only; no live tool integration is implemented.]
+        created_at: '2026-10-17T02:00:00Z'
+        updated_at: '2026-10-17T02:00:01Z'
+        finished_at: '2026-10-17T02:00:01Z'
+      - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        sequence: 1
+        run_id: 11111111-1111-4111-8111-111111111111
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+        provider_tool_call_id: call-search-1
+        request:
+          capability_id: web.search
+          arguments: {query: Source for the supplied public claim}
+        argument_digest: sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea
+        arguments_preview: 'query: Source for the supplied public claim'
+        route_decisions:
+        - route_decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          run_id: 11111111-1111-4111-8111-111111111111
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+          provider_tool_call_id: call-search-1
+          capability_id: web.search
+          route: awaiting_approval
+          selected_tool_id: anthropic.web_search
+          selected_profile_id: anthropic-search
+          selected_backend_id: anthropic-messages
+          delegated_agent_id: null
+          grant_refs: []
+          policy_version: personal-v2
+          catalog_version: catalog-v2
+          reason_code: missing_grant
+          notice: No matching task/session grant; waiting for an exact-action human decision.
+          created_at: '2026-10-17T02:00:00Z'
+        approval:
+          approval_request_id: ffffffff-ffff-4fff-8fff-fffffffffff2
+          argument_digest: sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea
+          action_preview: 'query: Source for the supplied public claim'
+          required_scopes: [web.search.public]
+          created_at: '2026-10-17T02:00:00Z'
+          expires_at: '2026-10-17T02:05:00Z'
+        status: awaiting_approval
+        execution_backend_id: anthropic-messages
+        native_job_id: null
+        external_status: not_started
+        bounds_mode: strict
+        execution_controls:
+          strict_bounds_supported: true
+          supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+          max_internal_model_invocations: 1
+          max_internal_tool_operations: 1
+          max_job_seconds: 120
+          job_deadline_enforced: true
+          tool_permission_gate: before_each
+          context_isolation: verified
+          notes: Illustrative deterministic mock control mapping, not a tested live backend.
+        deadline_at: '2026-10-17T02:00:45Z'
+        result: null
+        sources: []
+        usage:
+          harness_invocations: 0
+          tool_operations_observed: 0
+          native_jobs_started: 0
+          internal_usage_visibility: complete
+          internal_model_invocations: 0
+          internal_tool_operations: 0
+          input_tokens: null
+          output_tokens: null
+          reserved_output_tokens: 0
+          token_scope: simulated
+          accounting: simulated
+          estimated_cost_usd: 0
+          cost_scope: simulated
+          pricing_version: null
+        limitations: [Hypothetical response shape only; no live tool integration is implemented.]
+        created_at: '2026-10-17T02:00:00Z'
+        updated_at: '2026-10-17T02:00:01Z'
+        finished_at: null
+      - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        sequence: 1
+        run_id: 11111111-1111-4111-8111-111111111111
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+        provider_tool_call_id: call-search-1
+        request:
+          capability_id: agent.task
+          arguments: {task: Inspect the supplied non-sensitive text.}
+        argument_digest: sha256:339dcaa7c2723cd17ff823c87626b89d796e3bb20e505ea876a8693e18c0010f
+        arguments_preview: 'task: Inspect the supplied non-sensitive text.'
+        route_decisions:
+        - route_decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          run_id: 11111111-1111-4111-8111-111111111111
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+          provider_tool_call_id: call-search-1
+          capability_id: agent.task
+          route: delegated
+          selected_tool_id: claude.agent_task
+          selected_profile_id: claude-sdk-profile
+          selected_backend_id: claude-sdk-sandbox
+          delegated_agent_id: bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1
+          grant_refs: [ffffffff-ffff-4fff-8fff-fffffffffff1]
+          policy_version: personal-v2
+          catalog_version: catalog-v2
+          reason_code: matching_task_grant
+          notice: Explicit bounded-job opt-in; internal usage may be opaque.
+          created_at: '2026-10-17T02:00:00Z'
+        approval: null
+        status: unknown
+        execution_backend_id: claude-sdk-sandbox
+        native_job_id: illustrative-native-job-1
+        external_status: unknown
+        bounds_mode: bounded_job
+        execution_controls:
+          strict_bounds_supported: false
+          supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+          max_internal_model_invocations: null
+          max_internal_tool_operations: null
+          max_job_seconds: 120
+          job_deadline_enforced: true
+          tool_permission_gate: pre_scoped
+          context_isolation: verified
+          notes: 'Hypothetical bounded job: enforce launch/deadline, not hidden internal-call totals.'
+        deadline_at: '2026-10-17T02:02:00Z'
+        result: null
+        sources: []
+        usage:
+          harness_invocations: 1
+          tool_operations_observed: 0
+          native_jobs_started: 1
+          internal_usage_visibility: opaque
+          internal_model_invocations: null
+          internal_tool_operations: null
+          input_tokens: null
+          output_tokens: null
+          reserved_output_tokens: 2048
+          token_scope: unknown
+          accounting: unknown
+          estimated_cost_usd: null
+          cost_scope: unknown
+          pricing_version: null
+        limitations: [Illustrative unknown remote completion and usage after a local stop; no refund/reversal or
+            actual CLI launch is implied.]
+        created_at: '2026-10-17T02:00:00Z'
+        updated_at: '2026-10-17T02:00:01Z'
+        finished_at: '2026-10-17T02:00:01Z'
+      - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        sequence: 1
+        run_id: 11111111-1111-4111-8111-111111111111
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+        provider_tool_call_id: call-search-1
+        request:
+          capability_id: web.search
+          arguments: {query: Source for the supplied public claim}
+        argument_digest: sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea
+        arguments_preview: 'query: Source for the supplied public claim'
+        route_decisions:
+        - route_decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          run_id: 11111111-1111-4111-8111-111111111111
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+          provider_tool_call_id: call-search-1
+          capability_id: web.search
+          route: blocked
+          selected_tool_id: anthropic.web_search
+          selected_profile_id: anthropic-search
+          selected_backend_id: anthropic-messages
+          delegated_agent_id: null
+          grant_refs: []
+          policy_version: personal-v2
+          catalog_version: catalog-v2
+          reason_code: missing_grant
+          notice: No matching task/session grant; run policy blocks rather than pauses this optional action.
+          created_at: '2026-10-17T02:00:00Z'
+        approval: null
+        status: blocked
+        execution_backend_id: anthropic-messages
+        native_job_id: null
+        external_status: not_started
+        bounds_mode: strict
+        execution_controls:
+          strict_bounds_supported: true
+          supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+          max_internal_model_invocations: 1
+          max_internal_tool_operations: 1
+          max_job_seconds: 120
+          job_deadline_enforced: true
+          tool_permission_gate: before_each
+          context_isolation: verified
+          notes: Illustrative deterministic mock control mapping, not a tested live backend.
+        deadline_at: '2026-10-17T02:00:45Z'
+        result: null
+        sources: []
+        usage:
+          harness_invocations: 0
+          tool_operations_observed: 0
+          native_jobs_started: 0
+          internal_usage_visibility: complete
+          internal_model_invocations: 0
+          internal_tool_operations: 0
+          input_tokens: null
+          output_tokens: null
+          reserved_output_tokens: 0
+          token_scope: simulated
+          accounting: simulated
+          estimated_cost_usd: 0
+          cost_scope: simulated
+          pricing_version: null
+        limitations: ['Illustrative blocked grant; no operation, helper or native job was dispatched.']
+        created_at: '2026-10-17T02:00:00Z'
+        updated_at: '2026-10-17T02:00:01Z'
+        finished_at: '2026-10-17T02:00:01Z'
+    ToolExecutionPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/ToolExecution'}
+          minItems: 0
+          maxItems: 100
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 2048
