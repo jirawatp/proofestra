@@ -2,7 +2,7 @@
 
 Proofestra is a planned, friendly chat application that lets a user assemble an AI team across model providers. Agents produce independent answers, review material disagreements, and help a synthesizer present an answer with evidence and remaining uncertainty.
 
-This repository currently contains planning documents only. No runnable app, provider integration, or verification system has been implemented. The implementation stack is intentionally undecided.
+This repository contains planning documents and a standalone simulated design prototype. No production app, provider integration, or verification system has been implemented. The proposed implementation stack, data model, and run semantics are recorded in the [technical design](technical-design.md). The [requirements](requirements.md) distinguish confirmed scope from design defaults.
 
 ## Product boundaries
 

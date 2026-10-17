@@ -2,10 +2,11 @@
 
 ## Current status
 
-Proofestra is pre-alpha and documentation-only. There is no runnable agent
-harness, hosted service, provider integration, supported release, or security
-audit yet. Architecture documents describe intended controls, not guarantees
-that those controls have been implemented.
+Proofestra is in requirements and design. A standalone interactive mockup uses
+simulated answers and makes no model calls. There is no application backend,
+live agent harness, hosted service, provider integration, supported release, or
+security audit yet. Architecture documents describe intended controls, not
+guarantees that those controls have been implemented.
 
 ## Reporting a vulnerability
 

@@ -1,0 +1,830 @@
+openapi: 3.1.1
+info:
+  title: Proofestra local API
+  version: 0.1.0-draft
+  summary: Planned personal self-hosted API; no endpoint is implemented.
+  description: |
+    Draft contract for the same-origin personal browser UI. No provider integrations
+    or runtime are implemented. Default origin is loopback; this session boundary
+    is not public-service or multi-user authentication. Validate Host, disable CORS,
+    and accept UTF-8 JSON with a maximum request body of 128 KiB. Every response,
+    including errors and event streams, uses Cache-Control: no-store and X-Request-ID.
+    Live calls require server enablement, configured selected providers, and explicit
+    execution_mode: live. Startup and metadata reads never call providers.
+  license:
+    name: Apache License 2.0
+    identifier: Apache-2.0
+servers:
+  - url: http://127.0.0.1:3000/api/v1
+security:
+  - cookieAuth: []
+tags:
+  - name: Session
+  - name: Providers
+  - name: Conversations
+  - name: Runs
+paths:
+  /session:
+    get:
+      tags: [Session]
+      operationId: bootstrapSession
+      summary: Bootstrap a local browser session without provider calls
+      security: []
+      description: Validate Host even here. Refresh may replace the session without losing saved conversations.
+      responses:
+        '200':
+          description: Session cookie and CSRF token; no account or login.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+            Set-Cookie:
+              description: HttpOnly; SameSite=Strict; Path=/api/v1; Secure under HTTPS. Never export or log.
+              schema: {type: string}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Session'}
+        '403': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /providers:
+    get:
+      tags: [Providers]
+      operationId: listProviders
+      summary: Read configured model IDs and masked readiness
+      description: Always returns all three providers; readiness is configuration status, not verified availability. No key values or provider requests.
+      responses:
+        '200':
+          description: Provider metadata and server live-mode enablement.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ProviderList'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations:
+    get:
+      tags: [Conversations]
+      operationId: listConversations
+      summary: Page conversations by newest update, with UUID tie-break
+      parameters:
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/PageLimit'}
+      responses:
+        '200':
+          description: Live view; updates can move records between pages.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConversationPage'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Conversations]
+      operationId: createConversation
+      summary: Create a blank conversation
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - {$ref: '#/components/parameters/Origin'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                title: {type: string, minLength: 1, maxLength: 200, default: New conversation}
+      responses:
+        '201':
+          description: Blank conversation created.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+            Location: {$ref: '#/components/headers/Location'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Conversation'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations/{conversation_id}:
+    parameters:
+      - {$ref: '#/components/parameters/ConversationId'}
+    get:
+      tags: [Conversations]
+      operationId: getConversation
+      summary: Read conversation metadata
+      responses:
+        '200':
+          description: Conversation metadata.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Conversation'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+    delete:
+      tags: [Conversations]
+      operationId: deleteConversation
+      summary: Delete a conversation and its associated local records
+      description: Returns 204 even for an absent valid UUID. Any active run in this conversation blocks deletion. Logical deletion is not forensic erasure of backups, SQLite pages, exports, or provider data.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - {$ref: '#/components/parameters/Origin'}
+      responses:
+        '204': {$ref: '#/components/responses/NoContent'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations/{conversation_id}/messages:
+    parameters:
+      - {$ref: '#/components/parameters/ConversationId'}
+    get:
+      tags: [Conversations]
+      operationId: listMessages
+      summary: Page messages in stable chronological sequence
+      parameters:
+        - {$ref: '#/components/parameters/Cursor'}
+        - {$ref: '#/components/parameters/PageLimit'}
+      responses:
+        '200':
+          description: User prompts and final presentations; drafts remain run artifacts.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/MessagePage'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations/{conversation_id}/runs:
+    parameters:
+      - {$ref: '#/components/parameters/ConversationId'}
+    post:
+      tags: [Runs]
+      operationId: createRun
+      summary: Atomically save prompt and configuration and enqueue one run
+      description: |
+        Resolve durable idempotency replay before the single global active-run guard.
+        Same conversation/key and normalized payload returns the original snapshot
+        with 200, even after restart; changed payload returns 409 idempotency_conflict.
+        A distinct request while any run is active returns 409 run_in_progress.
+        Persist keys/digests for the conversation lifetime. Validate the entire
+        request and live readiness before dispatch. Returns queued, not an answer.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - {$ref: '#/components/parameters/Origin'}
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: {type: string, format: uuid}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/RunCreate'}
+            examples:
+              mockTeam:
+                summary: Three-provider mock run, no paid calls
+                value:
+                  prompt: Compare these options and keep unsupported claims unresolved.
+                  mode: team
+                  execution_mode: mock
+                  providers: [openai, anthropic, gemini]
+                  synthesizer: openai
+      responses:
+        '201': {$ref: '#/components/responses/RunCreated'}
+        '200': {$ref: '#/components/responses/RunReplay'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        '422': {$ref: '#/components/responses/Error'}
+        '429': {$ref: '#/components/responses/RateLimited'}
+        default: {$ref: '#/components/responses/Error'}
+  /runs/{run_id}:
+    parameters:
+      - {$ref: '#/components/parameters/RunId'}
+    get:
+      tags: [Runs]
+      operationId: getRun
+      summary: Read a run snapshot without starting or resuming work
+      description: A provider failure is snapshot data, not a retrieval HTTP 500. No raw vendor errors, HTTP traces, or private reasoning are exposed.
+      responses:
+        '200': {$ref: '#/components/responses/RunSnapshot'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /runs/{run_id}/cancellation:
+    parameters:
+      - {$ref: '#/components/parameters/RunId'}
+    put:
+      tags: [Runs]
+      operationId: cancelRun
+      summary: Request cancellation and return the current snapshot
+      description: |
+        Idempotent, bodyless operation. Atomically cancel active work; repeated calls
+        return the current terminal state. Completion may win the race. A canceled
+        state cannot be replaced by late callbacks. Already-sent work may be billed.
+      security:
+        - cookieAuth: []
+          csrfToken: []
+      parameters:
+        - {$ref: '#/components/parameters/Origin'}
+      responses:
+        '200': {$ref: '#/components/responses/RunSnapshot'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /runs/{run_id}/events:
+    parameters:
+      - {$ref: '#/components/parameters/RunId'}
+    get:
+      tags: [Runs]
+      operationId: streamRunEvents
+      summary: Replay durable bounded stage events using SSE
+      description: |
+        Read-only replay; disconnect never changes run state. IDs are increasing
+        decimal integers scoped to the run; absent Last-Event-ID replays after zero.
+        Malformed, negative, or future IDs return 400 before opening the stream.
+        Events live until conversation deletion. Close after run.finished; return
+        204 if Last-Event-ID already equals that terminal event ID. Comment
+        heartbeats have no ID. SSE event name equals EventEnvelope.type; data is
+        JSON conforming to EventEnvelope. No raw token stream or hidden reasoning.
+      parameters:
+        - name: Last-Event-ID
+          in: header
+          required: false
+          schema: {type: string, pattern: '^(0|[1-9][0-9]*)$'}
+      responses:
+        '200':
+          description: SSE frames with durable numeric IDs and JSON event data.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            text/event-stream:
+              schema: {type: string}
+              example: |
+                id: 4
+                event: step.updated
+                data: {"run_id":"11111111-1111-4111-8111-111111111111","sequence":4,"type":"step.updated","at":"2026-10-17T02:00:00Z","data":{"stage":"draft","provider":"openai","status":"completed"}}
+
+        '204': {$ref: '#/components/responses/NoContent'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations/{conversation_id}/export:
+    parameters:
+      - {$ref: '#/components/parameters/ConversationId'}
+    get:
+      tags: [Conversations]
+      operationId: exportConversation
+      summary: Export portable version-1 JSON after all conversation runs terminate
+      description: Contains user content; disclose before download. Excludes keys, cookies, CSRF tokens, raw HTTP payloads, infrastructure logs, and private reasoning. Any active run in this conversation returns 409. Import is outside MVP.
+      responses:
+        '200':
+          description: Full logical conversation export, not a paginated list.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+            Content-Disposition:
+              schema: {type: string}
+              example: attachment; filename="proofestra-conversation.json"
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ConversationExport'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: proofestra_session
+      description: Local-browser HttpOnly SameSite=Strict session; Secure under HTTPS. Not multi-user authentication.
+    csrfToken:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required with cookieAuth on mutations; must match the bootstrapped session token. Also validate Origin.
+  headers:
+    NoStore:
+      required: true
+      schema: {type: string, const: no-store}
+    RequestId:
+      required: true
+      description: Server-generated correlation UUID; no sensitive content.
+      schema: {type: string, format: uuid}
+    Location:
+      description: Same-origin relative URI identifying the resource, including on idempotent replay.
+      schema: {type: string, format: uri-reference}
+  parameters:
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      description: Must exactly match the configured canonical origin, default http://127.0.0.1:3000. Never accept null or a wildcard.
+      schema: {type: string, format: uri}
+    ConversationId:
+      name: conversation_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    RunId:
+      name: run_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    Cursor:
+      name: cursor
+      in: query
+      description: Opaque endpoint/conversation-scoped cursor. Invalid/deleted scope is 400; deletion invalidates associated cursors.
+      schema: {type: string, minLength: 1, maxLength: 2048}
+    PageLimit:
+      name: limit
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+  responses:
+    Error:
+      description: |
+        Standard safe error envelope. 400 malformed request/cursor/event ID;
+        401 missing session; 403 Host/origin/CSRF denied; 404 unknown parent/run;
+        409 active-run or idempotency conflict; 413 body over 128 KiB;
+        422 semantic validation/live readiness/context capacity; 429 local admission
+        limiting; 500 unexpected internal error. Retry-After is required on 429.
+        Field details never echo sensitive values. Default also covers these
+        API-wide failures when not separately listed for an operation.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+        Retry-After:
+          description: Required only for 429; seconds before retrying local admission.
+          schema: {type: integer, minimum: 1}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+          examples:
+            activeRun:
+              value:
+                error:
+                  code: run_in_progress
+                  message: Cancel or wait for the active run before starting another.
+                  request_id: 22222222-2222-4222-8222-222222222222
+                  details: []
+            contextTooLarge:
+              value:
+                error:
+                  code: context_too_large
+                  message: The complete history cannot safely fit this team. Start a new conversation.
+                  request_id: 22222222-2222-4222-8222-222222222222
+                  details: [{field: prompt, code: context_capacity_exceeded}]
+    RateLimited:
+      description: Local admission limit; preserve Idempotency-Key when retrying a start. No provider call has been admitted by this response.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+        Retry-After:
+          required: true
+          description: Seconds before retrying local admission.
+          schema: {type: integer, minimum: 1}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorEnvelope'}
+    NoContent:
+      description: Success without a response body.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+    RunCreated:
+      description: Newly saved queued run; no answer is implied.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+        Location: {$ref: '#/components/headers/Location'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/RunSnapshot'}
+    RunReplay:
+      description: Original run for the same key and normalized payload; preserve original configuration and limits.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+        Location: {$ref: '#/components/headers/Location'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/RunSnapshot'}
+    RunSnapshot:
+      description: Current bounded run snapshot; reads never submit work.
+      headers:
+        Cache-Control: {$ref: '#/components/headers/NoStore'}
+        X-Request-ID: {$ref: '#/components/headers/RequestId'}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/RunSnapshot'}
+  schemas:
+    Provider:
+      type: string
+      enum: [openai, anthropic, gemini]
+    Session:
+      type: object
+      additionalProperties: false
+      required: [csrf_token]
+      properties:
+        csrf_token: {type: string, minLength: 32, maxLength: 256, writeOnly: false}
+    ProviderConfig:
+      type: object
+      additionalProperties: false
+      required: [provider, readiness, model_id, safe_input_tokens]
+      properties:
+        provider: {$ref: '#/components/schemas/Provider'}
+        readiness: {type: string, enum: [configured, missing]}
+        model_id: {type: [string, 'null'], minLength: 1, maxLength: 200}
+        safe_input_tokens: {type: [integer, 'null'], minimum: 1}
+      description: Missing means key, explicit model, or safe input/output mapping is absent; model_id is null when unconfigured. Live readiness needs a conservative local capacity. No key or verification call is returned.
+      allOf:
+        - if: {properties: {readiness: {const: configured}}, required: [readiness]}
+          then:
+            properties:
+              model_id: {type: string}
+              safe_input_tokens: {type: integer}
+          else:
+            properties:
+              model_id: {type: 'null'}
+    ProviderList:
+      type: object
+      additionalProperties: false
+      required: [live_enabled, providers]
+      properties:
+        live_enabled: {type: boolean}
+        providers:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: {$ref: '#/components/schemas/ProviderConfig'}
+          description: Exactly one entry for each provider enum.
+    Conversation:
+      type: object
+      additionalProperties: false
+      required: [id, title, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        title: {type: string, minLength: 1, maxLength: 200}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    ConversationPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/Conversation'}}
+        next_cursor: {type: [string, 'null']}
+    Message:
+      type: object
+      additionalProperties: false
+      required: [id, conversation_id, run_id, role, text, sequence, created_at]
+      properties:
+        id: {type: string, format: uuid}
+        conversation_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        role: {type: string, enum: [user, assistant]}
+        text: {type: string, maxLength: 65536}
+        sequence: {type: integer, minimum: 1}
+        created_at: {type: string, format: date-time}
+    MessagePage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items: {type: array, maxItems: 100, items: {$ref: '#/components/schemas/Message'}}
+        next_cursor: {type: [string, 'null']}
+    RunCreate:
+      type: object
+      additionalProperties: false
+      required: [prompt, mode, providers]
+      description: |
+        Quick requires exactly one provider and no synthesizer. Team requires 2–3
+        unique providers and a synthesizer among them. All selected live providers
+        need server keys and explicit models. Server snapshots model IDs; clients
+        cannot submit them. Default execution mode is mock. all_history_v1 freezes
+        all prior user/final-assistant messages plus this prompt once; never trim,
+        summarize, or truncate per provider. Conservatively preflight the smallest
+        configured safe input capacity, instructions, reserved output, and worst-case
+        review/synthesis peer artifacts. Reject 422 context_too_large before dispatch
+        if unsafe; advise a new conversation. Missing capacity rejects live readiness.
+        Unexpected later overflow preserves partial results, never silently trims.
+        Reject invalid cross-field limits before any provider request.
+      properties:
+        prompt: {type: string, minLength: 1, maxLength: 16000}
+        mode: {type: string, enum: [quick, team]}
+        execution_mode: {type: string, enum: [mock, live], default: mock}
+        providers:
+          type: array
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+          items: {$ref: '#/components/schemas/Provider'}
+        synthesizer: {$ref: '#/components/schemas/Provider'}
+        limits: {$ref: '#/components/schemas/RunLimitsInput'}
+      allOf:
+        - if:
+            properties: {mode: {const: quick}}
+            required: [mode]
+          then:
+            properties:
+              providers: {maxItems: 1}
+              limits:
+                properties:
+                  max_calls: {const: 1}
+                  max_retries_per_step: {const: 0}
+            not: {required: [synthesizer]}
+          else:
+            required: [synthesizer]
+            properties:
+              providers: {minItems: 2}
+    RunLimitsInput:
+      type: object
+      additionalProperties: false
+      description: |
+        Omitted fields use these defaults, except Quick max_calls=1 and retries=0.
+        Team defaults max_calls=9 and retries=1. Bounds are provisional local safety
+        ceilings. max_calls must cover nominal calls (Quick 1; Team 2n+1); total
+        output must cover nominal_calls * max_output_tokens_per_call; per-call
+        timeout must not exceed overall timeout. Reserve attempts/output before
+        scheduling; preserve remaining nominal-stage allowance before optional
+        retries. Only retry explicit safe rejections before generation. Never
+        retry ambiguous sent requests. Limits do not promise a monetary cap.
+      properties:
+        max_calls: {type: integer, minimum: 1, maximum: 9}
+        concurrency: {type: integer, minimum: 1, maximum: 3, default: 3}
+        overall_timeout_seconds: {type: integer, minimum: 15, maximum: 180, default: 180}
+        per_call_timeout_seconds: {type: integer, minimum: 5, maximum: 45, default: 45}
+        max_output_tokens_per_call: {type: integer, minimum: 128, maximum: 2048, default: 2048}
+        total_output_tokens: {type: integer, minimum: 128, maximum: 16384, default: 16384}
+        max_retries_per_step: {type: integer, minimum: 0, maximum: 1}
+    RunLimits:
+      allOf:
+        - {$ref: '#/components/schemas/RunLimitsInput'}
+        - required: [max_calls, concurrency, overall_timeout_seconds, per_call_timeout_seconds, max_output_tokens_per_call, total_output_tokens, max_retries_per_step]
+    RunStatus:
+      type: string
+      enum: [queued, running, completed, partial, failed, canceled, interrupted]
+    TerminalStatus:
+      type: string
+      enum: [completed, partial, failed, canceled, interrupted]
+    StepStatus:
+      type: string
+      enum: [queued, running, completed, failed, skipped, timed_out, canceled]
+    AgentSnapshot:
+      type: object
+      additionalProperties: false
+      required: [provider, model_id, safe_input_tokens]
+      properties:
+        provider: {$ref: '#/components/schemas/Provider'}
+        model_id: {type: string, minLength: 1, maxLength: 200}
+        safe_input_tokens: {type: integer, minimum: 1}
+      description: Frozen explicit configured model ID for live; deterministic mock model ID in mock mode.
+    ContextSnapshot:
+      type: object
+      additionalProperties: false
+      required: [policy, message_ids, input_fit_status]
+      properties:
+        policy: {type: string, const: all_history_v1}
+        message_ids: {type: array, uniqueItems: true, items: {type: string, format: uuid}}
+        input_fit_status: {type: string, const: accepted}
+        notice: {type: string, maxLength: 1000}
+      description: Frozen history plus current prompt; fit is a conservative local estimate, not guaranteed vendor token counting. Initial drafts never contain peer drafts.
+    Usage:
+      type: object
+      additionalProperties: false
+      required: [attempts_dispatched, input_tokens, output_tokens, reserved_output_tokens, accounting, estimated_cost_usd]
+      properties:
+        attempts_dispatched: {type: integer, minimum: 0, maximum: 9}
+        input_tokens: {type: [integer, 'null'], minimum: 0}
+        output_tokens: {type: [integer, 'null'], minimum: 0}
+        reserved_output_tokens: {type: integer, minimum: 0, maximum: 16384}
+        accounting: {type: string, enum: [reported, conservative, unknown]}
+        estimated_cost_usd: {type: [number, 'null'], minimum: 0}
+        pricing_version: {type: [string, 'null'], maxLength: 200}
+      description: |
+        Missing usage stays null, never assumed zero. Retain output reservations
+        for uncertain/timed-out dispatched attempts. Cost is an estimate only;
+        unknown cost is null, not $0. Totals include all attempts and retries.
+    NormalizedFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum: [authentication, rate_limited, model_unavailable, invalid_request, provider_unavailable, timeout, context_too_large, budget_exhausted, canceled, interrupted, unknown]
+        message: {type: string, maxLength: 500}
+      description: Safe concise message, never raw vendor response, secrets, or stack trace.
+    Source:
+      type: object
+      additionalProperties: false
+      required: [claim, reference, provenance, status]
+      properties:
+        claim: {type: string, maxLength: 2000}
+        reference: {type: string, maxLength: 2048}
+        provenance: {type: string, const: model_supplied}
+        status: {type: string, const: unverified}
+      description: Inert model-proposed reference; MVP did not fetch or check it. A URL is not evidence of support.
+    Finding:
+      type: object
+      additionalProperties: false
+      required: [provider, text]
+      properties:
+        provider: {$ref: '#/components/schemas/Provider'}
+        text: {type: string, maxLength: 2000}
+    StepSnapshot:
+      type: object
+      additionalProperties: false
+      required: [stage, provider, status, attempts, output, findings, sources, usage, failure]
+      properties:
+        stage: {type: string, enum: [draft, review, synthesis]}
+        provider: {$ref: '#/components/schemas/Provider'}
+        status: {$ref: '#/components/schemas/StepStatus'}
+        attempts: {type: integer, minimum: 0, maximum: 2}
+        output: {type: [string, 'null'], maxLength: 65536}
+        findings: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/Finding'}}
+        sources: {type: array, maxItems: 20, items: {$ref: '#/components/schemas/Source'}}
+        usage: {$ref: '#/components/schemas/Usage'}
+        failure:
+          oneOf:
+            - {$ref: '#/components/schemas/NormalizedFailure'}
+            - {type: 'null'}
+      description: Bounded concise artifacts only; review output is findings, never a hidden reasoning trace. Quick has at most one attempt.
+    RunSnapshot:
+      type: object
+      additionalProperties: false
+      required: [id, conversation_id, user_message_id, mode, execution_mode, status, agents, synthesizer, context, prompt_version, limits, planned_calls, steps, final_answer, presentation, limitations, usage, created_at, finished_at, last_event_sequence]
+      properties:
+        id: {type: string, format: uuid}
+        conversation_id: {type: string, format: uuid}
+        user_message_id: {type: string, format: uuid}
+        mode: {type: string, enum: [quick, team]}
+        execution_mode: {type: string, enum: [mock, live]}
+        status: {$ref: '#/components/schemas/RunStatus'}
+        agents: {type: array, minItems: 1, maxItems: 3, items: {$ref: '#/components/schemas/AgentSnapshot'}}
+        synthesizer:
+          oneOf:
+            - {$ref: '#/components/schemas/Provider'}
+            - {type: 'null'}
+        context: {$ref: '#/components/schemas/ContextSnapshot'}
+        prompt_version: {type: string, minLength: 1, maxLength: 100}
+        limits: {$ref: '#/components/schemas/RunLimits'}
+        planned_calls: {type: integer, enum: [1, 5, 7]}
+        steps: {type: array, maxItems: 7, items: {$ref: '#/components/schemas/StepSnapshot'}}
+        final_answer: {type: [string, 'null'], maxLength: 65536}
+        presentation: {type: string, enum: [none, quick_unreviewed, team_synthesis, draft_fallback]}
+        limitations: {type: array, maxItems: 30, items: {type: string, maxLength: 1000}}
+        usage: {$ref: '#/components/schemas/Usage'}
+        created_at: {type: string, format: date-time}
+        finished_at: {type: [string, 'null'], format: date-time}
+        last_event_sequence: {type: integer, minimum: 1}
+      description: |
+        Completed means all planned workflow stages completed, not answer accuracy.
+        Any missing Team review, provider failure, or fallback is partial. Zero
+        drafts fails; one draft skips peer reviews and can synthesize partially.
+        Synthesis failure leaves labeled drafts, not an invented final answer.
+        Deadline aborts local work: partial with a draft, failed without. Canceled
+        stays canceled; restart marks active runs interrupted without auto-resume.
+        Active runs have null finished_at. Credentials/raw traces are never fields.
+      examples:
+        - id: 11111111-1111-4111-8111-111111111111
+          conversation_id: 33333333-3333-4333-8333-333333333333
+          user_message_id: 44444444-4444-4444-8444-444444444444
+          mode: quick
+          execution_mode: mock
+          status: completed
+          agents: [{provider: openai, model_id: mock-openai-v1, safe_input_tokens: 32000}]
+          synthesizer: null
+          context: {policy: all_history_v1, message_ids: [44444444-4444-4444-8444-444444444444], input_fit_status: accepted}
+          prompt_version: mock-v1
+          limits: {max_calls: 1, concurrency: 3, overall_timeout_seconds: 180, per_call_timeout_seconds: 45, max_output_tokens_per_call: 2048, total_output_tokens: 16384, max_retries_per_step: 0}
+          planned_calls: 1
+          steps:
+            - stage: draft
+              provider: openai
+              status: completed
+              attempts: 1
+              output: Simulated answer; no live model was called.
+              findings: []
+              sources: []
+              usage: {attempts_dispatched: 1, input_tokens: 12, output_tokens: 10, reserved_output_tokens: 0, accounting: reported, estimated_cost_usd: 0}
+              failure: null
+          final_answer: Simulated answer; no live model was called.
+          presentation: quick_unreviewed
+          limitations: [Unreviewed simulated response.]
+          usage: {attempts_dispatched: 1, input_tokens: 12, output_tokens: 10, reserved_output_tokens: 0, accounting: reported, estimated_cost_usd: 0}
+          created_at: '2026-10-17T02:00:00Z'
+          finished_at: '2026-10-17T02:00:01Z'
+          last_event_sequence: 3
+    TerminalRunSnapshot:
+      allOf:
+        - {$ref: '#/components/schemas/RunSnapshot'}
+        - properties:
+            status: {$ref: '#/components/schemas/TerminalStatus'}
+            finished_at: {type: string, format: date-time}
+    EventEnvelope:
+      type: object
+      additionalProperties: false
+      required: [run_id, sequence, type, at, data]
+      properties:
+        run_id: {type: string, format: uuid}
+        sequence: {type: integer, minimum: 1}
+        type: {type: string, enum: [run.started, step.updated, run.finished]}
+        at: {type: string, format: date-time}
+        data: {type: object}
+      allOf:
+        - if: {properties: {type: {const: run.started}}, required: [type]}
+          then:
+            properties:
+              data:
+                properties:
+                  status: {type: string, enum: [queued, running]}
+        - if: {properties: {type: {const: step.updated}}, required: [type]}
+          then:
+            properties:
+              data:
+                type: object
+                additionalProperties: false
+                required: [stage, provider, status]
+                properties:
+                  stage: {type: string, enum: [draft, review, synthesis]}
+                  provider: {$ref: '#/components/schemas/Provider'}
+                  status: {$ref: '#/components/schemas/StepStatus'}
+          else:
+            properties:
+              data:
+                type: object
+                additionalProperties: false
+                required: [status]
+                properties:
+                  status: {$ref: '#/components/schemas/RunStatus'}
+        - if: {properties: {type: {const: run.finished}}, required: [type]}
+          then:
+            properties:
+              data:
+                properties:
+                  status: {$ref: '#/components/schemas/TerminalStatus'}
+    ConversationExport:
+      type: object
+      additionalProperties: false
+      required: [export_version, exported_at, conversation, messages, runs]
+      properties:
+        export_version: {type: integer, const: 1}
+        exported_at: {type: string, format: date-time}
+        conversation: {$ref: '#/components/schemas/Conversation'}
+        messages: {type: array, items: {$ref: '#/components/schemas/Message'}}
+        runs: {type: array, items: {$ref: '#/components/schemas/TerminalRunSnapshot'}}
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message, request_id, details]
+          properties:
+            code:
+              type: string
+              enum: [invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress, idempotency_conflict, body_too_large, validation_failed, context_too_large, live_disabled, provider_not_configured, rate_limited, internal_error]
+            message: {type: string, maxLength: 500}
+            request_id: {type: string, format: uuid}
+            details:
+              type: array
+              maxItems: 50
+              items:
+                type: object
+                additionalProperties: false
+                required: [field, code]
+                properties:
+                  field: {type: string, maxLength: 200}
+                  code: {type: string, maxLength: 100}

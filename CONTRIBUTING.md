@@ -1,7 +1,8 @@
 # Contributing to Proofestra
 
-Proofestra is a pre-alpha, documentation-only project. The chat interface, agent
-harness, provider integrations, and test suite have not been implemented yet.
+Proofestra is in requirements and design, with a standalone simulated interface
+for review. The application backend, live agent harness, provider integrations,
+and application test suite have not been implemented yet.
 
 ## Useful contributions
 

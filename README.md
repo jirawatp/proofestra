@@ -7,10 +7,11 @@ friendly conversation where agents from different model providers work
 independently, challenge each other's answers, and help the user understand the
 evidence and remaining uncertainty.
 
-> **Status: documentation starter.** This repository contains the project plan
-> and contribution guidelines. The chat application, agent harness, provider
-> integrations, and verification tools are not implemented yet. There is no
-> runnable demo, package, or hosted service.
+> **Status: requirements and design.** This repository contains the product
+> requirements, technical/API design, and a standalone interactive mockup with
+> simulated answers. The production chat application, backend, provider
+> integrations, and verification tools are not implemented. There is no package
+> or hosted service.
 
 ## The experience we want to build
 
@@ -44,7 +45,15 @@ the harness would not by itself keep prompts local when remote providers are use
 
 | Document | Purpose |
 | --- | --- |
+| [Requirements](docs/requirements.md) | Confirmed scope, priorities, and acceptance scenarios |
+| [Interactive mockup](docs/prototype/index.html) | Clickable design with simulated answers and no model calls |
+| [Experience design](docs/experience.md) | Chat flow, screen states, visual direction, and accessibility |
 | [Architecture](docs/architecture.md) | Proposed components, agent workflow, and trust boundaries |
+| [Technical design](docs/technical-design.md) | Proposed stack, run states, data model, and security boundaries |
+| [API design](docs/api.md) | Planned local API semantics and OpenAPI contract |
+| [Evaluation plan](docs/evaluation.md) | How to compare Team with single-agent baselines |
+| [Decisions](docs/decisions.md) | Confirmed choices, design defaults, and remaining decisions |
+| [Design review](docs/design-review.md) | Checks performed and what remains unverified |
 | [Roadmap](docs/roadmap.md) | Milestones and acceptance criteria for a first working version |
 | [Business model](docs/business-model.md) | Apache 2.0 core and optional commercial services |
 | [Contributing](CONTRIBUTING.md) | How to help while the project takes shape |
@@ -58,10 +67,16 @@ git clone https://github.com/jirawatp/proofestra.git
 cd proofestra
 ```
 
-No runtime dependencies or API credentials are needed to read these documents.
-The first implementation milestone is a small end-to-end chat flow with mocked
-providers, followed by an opt-in trial with two real providers. Technology choices
-will be recorded when that implementation begins.
+No runtime dependencies or API credentials are needed to read the documents or
+open `docs/prototype/index.html` directly in a browser. The mockup uses preset
+answers, keeps text in the tab's memory, and makes no provider requests. It is a
+design artifact, not the implemented chat application.
+
+The first implementation milestone is a working chat flow with deterministic
+mock providers and local history. The first live version will support OpenAI,
+Anthropic, and Gemini together, using server-configured keys and explicit model
+IDs. Quick uses one agent; the default Team workflow plans seven calls across all
+three providers before any bounded recovery attempts.
 
 ## License and commercial direction
 

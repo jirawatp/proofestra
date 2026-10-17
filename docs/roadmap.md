@@ -1,12 +1,16 @@
 # Roadmap
 
-This is a proposed development sequence, not a release commitment. The repository is currently a documentation-only starter.
+This is a proposed development sequence, not a release commitment. Requirements, technical/API design, and a standalone simulated mockup are available; the application backend and provider integrations are not implemented.
+
+The confirmed scope is personal, single-user self-hosting with OpenAI, Anthropic,
+and Gemini together in the first live version. See [requirements](requirements.md)
+and [design decisions](decisions.md) before implementation.
 
 ## 1. First runnable slice: deterministic mock team
 
 Build the smallest complete experience before choosing a broad integration surface:
 
-- One local chat screen with a user message, a single-agent mode, and a two-agent review mode.
+- One local chat screen with a user message, Quick mode, and Team mode with two or three agents.
 - Deterministic mock adapters that produce independent first responses, a reviewer finding, and a synthesized result.
 - Visible progress, cancellation, one review round, a run deadline, and an explicit call budget.
 - Source and uncertainty labels, including a mock unsupported citation that remains unverified.
@@ -15,15 +19,15 @@ Build the smallest complete experience before choosing a broad integration surfa
 
 **Done when:** a contributor can run the documented slice, follow a successful and a failed team run, cancel work, and see accurate completion and verification labels. Add focused tests for stage transitions, limit enforcement, cancellation, failure handling, and safe exports.
 
-## 2. Opt-in integration with two providers
+## 2. Opt-in integration with all three providers
 
-- Select two providers based on supported capabilities, privacy controls, cost, and contributor needs. Keep adapters replaceable and model selection configurable.
+- Add OpenAI, Anthropic, and Gemini adapters together. Keep explicit model IDs configurable and adapters replaceable; validate each against its current official contract.
 - Add explicit credential configuration and disclose the content sent to each provider, including cross-provider review content.
 - Keep real calls disabled until configured. Preserve mock mode for development and tests without paid requests.
 - Normalize streaming or completed responses, provider errors, deadlines, and available usage information.
 - Demonstrate independent first answers followed by a bounded review and synthesis.
 
-**Done when:** an opt-in integration run completes with both providers, reports actual usage when available, identifies estimates clearly, and handles either provider being unavailable. No paid calls should be required for the default test suite.
+**Done when:** opt-in acceptance covers all three adapters, each provider in Quick mode, and a full default Team run with three independent drafts, three reviews, and one synthesis. Report actual usage when available, label estimates, and handle any provider or synthesis failure. No paid calls are required for the default test suite.
 
 ## 3. Measure whether review helps
 
