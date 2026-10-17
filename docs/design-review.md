@@ -16,19 +16,26 @@ automatic capability routing within task grants. The user confirmed all tool
 surfaces: API tools, local agent apps/SDKs/CLIs, functions/MCP/local tools, and
 supported hosted agent services. Each integration still needs compatibility tests.
 The initial three API adapters remain the first live targets.
+The next user-confirmed scope adds shared skills, plugin bundles, and custom MCP
+registrations usable through connected provider adapters. See
+[extensions](extensions.md), EX-01–EX-08, A21–A25, and XLOG-006.
 
 ## Checks performed
 
-- OpenAPI 3.1.1 validation, fifteen embedded request/schema/event examples, and
-  fourteen rejected invalid-schema cases passed. Checks cover
+- OpenAPI 3.1.1 validation, twenty-two embedded request/schema/event examples, and
+  twenty-four rejected invalid-schema cases passed. The contract has fifteen
+  paths and seventy-one schemas. Checks cover
   extensible provider IDs, capability/runtime-policy metadata, tool execution,
   exact-action approvals, and native usage visibility. Semantic fixtures cover
   repeated profiles, unique IDs, synthesizer membership, lineage/cycles, dynamic
   policy, and invocation-scoped spawn deduplication. These are design-contract
   checks, not backend tests.
-  Semantic checks accepted an eight-root team within deployment ceilings and
-  rejected five identity/membership/deployment/tree conflicts. Helpers-off,
-  strict-on-opaque, revoked grants, and exact-action argument digests were checked.
+  Seventeen semantic design fixtures passed, including shared direct/bridge
+  registrations, unsupported profiles, namespace/provenance, pinned-version
+  lifecycle, grants, helpers-off, and branch isolation. Invocation-scoped spawn
+  identity, exact-action argument digests, null opaque usage and native-job
+  defaults were preserved. These fixtures are transient design checks; there is
+  no reusable backend acceptance suite yet.
 - Relative documentation links, referenced anchors, and whitespace were checked.
 - The prototype's embedded JavaScript passed a syntax check.
 - Browser checks preserved two OpenAI roots with different profiles, exact
@@ -68,6 +75,21 @@ The initial three API adapters remain the first live targets.
   produced no external page requests or script errors during browser inspection.
 - Stop during a tool operation preserved canceled state and four dispatched API
   invocations after pending timers elapsed, with no further continuation.
+- Shared extensions completed with ten simulated API requests, three MCP
+  operations, and three shared-skill instruction loads across OpenAI, Anthropic,
+  and Gemini. All used one registration and namespaced tool ID; each root had
+  a distinct branch/request/result and its own continuation before cross-review.
+  Helpers were off and no child was created. No external page requests or script
+  errors occurred in this browser check.
+- A disabled MCP binding dispatched no operation. Removing the scoped read grant
+  paused on the concrete action after three initial requests, with no MCP call or
+  peer review. Quick tools-off loaded one skill context with one request/cap one,
+  zero MCP operations, and no continuation. A blocked optional workflow stayed
+  visibly partial rather than claiming a completed shared-tool check.
+- Stop during shared MCP work canceled the two then-dispatched simulated
+  operations and held the API count at three with no continuation after timers
+  elapsed. Nonsecret connection labels replace internal credential references
+  in the mock catalog/export; real auth configuration is specified as broker-only.
 
 The design distinguishes provider/profile from agent identity, root reviewers
 from helper artifacts, and the base call plan from dynamic total usage. Spawn
@@ -100,6 +122,11 @@ approval-channel isolation all need implementation-specific tests. Larger-team
 review graphs and hierarchical synthesis remain extensions, not a measured
 capacity claim. API tools, SDK-local MCP, remote connectors, and hosted agent
 services must not be treated as equivalent execution surfaces.
+Shared extension imports, package-manager write endpoints, native plugin-format
+adapters, skill execution, MCP protocol/transport/auth compatibility, lifecycle
+enforcement, and real cross-provider broker isolation remain unimplemented.
+Current shared-catalog checks establish design/demo behavior only; no package was
+installed and no custom MCP server was contacted.
 
 The package is ready to guide the first mock-backed implementation slice. It is
 not a claim that the proposed limits, security controls, or answer-quality gains

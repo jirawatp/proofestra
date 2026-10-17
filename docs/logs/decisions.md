@@ -34,6 +34,31 @@ including retrospective mappings for the foundation.
   later changes with evidence/supersession references. This branch does not merge
   into main or implement the planned runtime.
 
+## DLOG-008 — Share extensions at the harness boundary
+
+- **Date / status:** 2026-10-17; shared skills/plugins/custom MCP are confirmed user
+  scope. A central catalog, manifest/broker model and lifecycle policy are proposed
+  engineering decisions, pending mock and integration validation.
+- **Reason / choice:** Reuse canonical namespaced capabilities across providers
+  instead of requiring separate vendor installations. Skills supply progressively
+  loaded instructions/resources; plugins bundle versioned references; a central
+  broker maps custom MCP through compatible adapters or approved enabled helpers.
+  Native vendor formats and hosted capabilities still need specific compatibility.
+- **Consequence:** Global/workspace scopes, wire-safe collision-checked aliases and
+  immutable version/digest snapshots preserve identity/provenance. Imports grant no
+  permissions or startup execution. Recheck current authorization; disabled or
+  superseded versions need explicit retained enablement/authorization before use.
+  Keep central secrets and approval control isolated, and keep root-branch scratch,
+  handles and results separate even when server registration is shared.
+- **Trace / source:** Current user request; preceding baseline [1374641]; delivered
+  by the containing commit on `codex/project-traceability`. Trace EX-01–EX-08,
+  A21–A25, AG-03/07, TL-01/03/04 and PV-02. See [extension policy](../extensions.md)
+  and RLOG-009 in the [requirement log](requirements.md). Extends DLOG-004/006 while
+  preserving grant boundaries, helper enablement, candidate status and no parity
+  guarantee. No previous historical entry is rewritten.
+- **Evidence:** Design documentation checks only; no imports, installations,
+  MCP connections, vendor calls or paid validation were run.
+
 ## Updating this log
 
 - Append the next unused `DLOG-NNN`; preserve existing IDs and historical status.
@@ -54,3 +79,4 @@ including retrospective mappings for the foundation.
 [f2d6863]: https://github.com/jirawatp/proofestra/commit/f2d6863c515d75136bb700d00d0062fc5a82ae9b
 [0760660]: https://github.com/jirawatp/proofestra/commit/07606603baa30f6a4f79091c0cf11c06ad268d7e
 [7a23553]: https://github.com/jirawatp/proofestra/commit/7a235536be0a8df835f2f897a07f5f436eef2bbe
+[1374641]: https://github.com/jirawatp/proofestra/commit/13746413cbb076c1ec9458090d9c89fdd6178af8

@@ -109,3 +109,31 @@ times of discussion or production releases.
   Remote publication is verified before reporting completion; it is not a merge.
 - **Next:** Resume from CONTINUE.md. Mock application/history/coordinator is the
   next proposed implementation milestone; live integrations remain later work.
+
+## XLOG-006 — Shared extension catalog and provider-independent tool broker
+
+- **Date / status:** 2026-10-17; user-confirmed skills/plugins/custom MCP scope,
+  proposed implementation design. Delivered by the containing commit after
+  [`1374641`](https://github.com/jirawatp/proofestra/commit/13746413cbb076c1ec9458090d9c89fdd6178af8).
+- **Change:** Add a shared global/workspace catalog for skill packages, plugin
+  bundles, and custom MCP registrations. A scoped skill loader and MCP/function
+  broker make compatible contributions usable by all connected providers without
+  mandatory separate native installation. Preserve stable package identity and
+  namespaces, immutable version/digest snapshots, central secret references,
+  compatible function projections, lifecycle checks, and isolated root-branch state.
+- **Reason / trace:** User requested common skills/plugins/custom tools across
+  providers. EX-01–EX-08, A21–A25; RLOG-009 and DLOG-008 in the other logs.
+  See [extensions](../extensions.md), [API](../api.md), and
+  [continuation checkpoint](../../CONTINUE.md).
+- **Refines:** XLOG-004's tool/backend registry. Shared catalog use is broader than
+  native provider MCP connectors, while vendor-only tools still require compatible
+  routes or authorized helpers. Skills and manifests do not grant permission.
+  Shared registration never shares current peer drafts or mutable scratch handles.
+- **Evidence / limitation:** Official Agent Skills and MCP specifications were
+  checked for design; exact sources are in extensions.md. Contract/example,
+  documentation, and simulated-browser checks are recorded in the review record.
+  No live skill import, plugin installation, MCP connection, provider call, or
+  production isolation/security test is claimed.
+- **Next:** Mock extension fixtures and cross-provider broker behavior, then
+  validated real imports/transports. Package-manager write endpoints and native
+  import adapters need their own implementation and acceptance work.

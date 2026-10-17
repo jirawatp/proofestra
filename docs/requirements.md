@@ -19,6 +19,8 @@ The latest direction expands provider/tool coverage and automatic use of provide
 agent tools; compatibility must be established for each integration.
 The user confirmed all tool surfaces: built-in API tools, local agent
 apps/SDKs/CLIs, functions/MCP/local executors, and supported hosted agent services.
+The user also requested shared agent skills, plugins and custom MCP support so
+connected providers can use authorized compatible extensions through the harness.
 
 **Proposed defaults:** local machine deployment, text-only conversations, one
 agent per provider in the default three-agent team, tools/helpers enabled for Team
@@ -26,7 +28,8 @@ and disabled for Quick, backend-specific credential setup, local history, and th
 limits below. Add validated API/SDK/CLI/MCP/hosted integrations in stages;
 design coverage does not establish live compatibility.
 [Agent policy](agents.md), [tools](tools.md), [scaling](scaling.md), and
-[provider capabilities](provider-capabilities.md) define detailed boundaries.
+[provider capabilities](provider-capabilities.md) define detailed boundaries;
+[shared extensions](extensions.md) covers skills, plugin bundles and custom MCP.
 The current phase produces requirements, design, and an interactive mockup only.
 
 ## Priorities
@@ -67,6 +70,14 @@ milestone. Later denotes a further extension; no runtime capability exists yet.
 | TL-04 | Must | For missing/revoked/exceeded scope, pause on the exact action within frozen allowed routes/destinations and record the user's decision. Approval never mints blanket grants or amends allowlists; broader route/provider/destination choices need a new configured run. Never silently install, authenticate, or enable unrestricted CLI approval. |
 | TL-05 | Must | Include search/retrieval, code, scoped files, functions, MCP and native agent tools in the design. Activate each only after backend compatibility and policy checks; provider-managed tools and client execution are different trust boundaries. |
 | TL-06 | Must | Use backend-supported credential flows with the user's approved account/key; never scrape or reuse another application's session tokens. A selected tool with missing credentials or incompatible capabilities must not execute. |
+| EX-01 | Must | Provide one shared harness catalog with global and workspace scopes for skills, plugins and custom MCP. Every connected provider is eligible for authorized compatible shared capabilities without separate manual per-vendor installation. Scope discovery never grants use. |
+| EX-02 | Must | A skill is versioned instructions/resources and optional scripts. Load metadata first, then relevant instructions/resources progressively within context limits. Skill content is untrusted guidance, not policy or permission; scripts require the registered executor and current action grant. |
+| EX-03 | Must | A plugin is a versioned manifest bundling references to skills/tools/MCP/backends. Import/enable trusted definitions deliberately, validate referenced versions/digests and declared capabilities, and execute no install/startup scripts merely by import. Vendor plugin formats require explicit tested importers, not assumed universal compatibility. |
+| EX-04 | Must | Broker custom MCP centrally: supervised local STDIO and remote negotiated supported HTTP transports with configured auth/destinations. Normalize tools/results and declare transport/capability compatibility; do not assume each provider's hosted connector accepts every custom server. |
+| EX-05 | Must | Expose shared namespaced capabilities through each model's function/tool adapter where compatible. Otherwise use an existing approved capable helper only when enabled, or report unavailable. Never silently replace roots, install per-vendor copies, bypass frozen route/grant boundaries or universalize vendor-exclusive hosted tools. |
+| EX-06 | Must | Resolve stable IDs with namespace/scope; reject collisions or require explicit disambiguation, never silent overwrite. Collision-checked provider aliases respect wire-name/length limits and map to the same logical IDs, version/digest, grants and provenance; secret references stay central. |
+| EX-07 | Must | Pin immutable catalog/extension versions/digests; never hot-swap active definitions. Recheck current enablement/grants before loading/dispatch. Disabled/revoked/removed/superseded versions block pending dispatch unless the pinned version is explicitly retained enabled and authorized. Stop running work where supported; record loaded context and uncertain completion without erasure/rollback claims. |
+| EX-08 | Must | Keep MCP/backend secrets out of prompts, committed/exported manifests, provider arguments and logs. Scripts/tools use scoped executors, shared budgets and isolated approval control. Shared registration never shares root-draft scratch/handles/results: isolate per-branch state or reject the route. Export safe IDs/versions/digests, resource references and action provenance, not raw secret-bearing traces. |
 | CT-01 | Must | Advertise effective server-policy limits and validate run settings before dispatch. Enforce observable request/tool/native-job ledgers, output/deadline/concurrency limits, tree quotas, and declared backend control limits. Personal defaults are not fixed product ceilings. |
 | CT-02 | Must | Reserve observable provider requests and output before dispatch, including root/child/continuation/retry work. Accept helpers/tools/native jobs only with applicable ledger allowance and protected remaining root work/parent continuation. |
 | CT-03 | Must | Harness retries default to at most once per logical step, only after an explicit pre-generation transient rejection within limits. Never automatically retry ambiguous sent requests or authentication/validation errors; native internal retries have separately declared visibility/control. |
@@ -170,6 +181,11 @@ all accepted child work can be completed; completion never establishes correctne
 | A18 — Existing grant and exact action | Covered read/sandbox/reversible workspace actions execute without repeated prompts; revocation is rechecked before dispatch. Missing scope in a frozen allowed route pauses for an exact-action decision, which cannot authorize different arguments or mint a blanket grant. Broader routes/providers/destinations require a new run; denial installs/authenticates nothing. (AG-07, TL-03/04) |
 | A19 — Native opaque usage | A simulated native job reports unknown internal requests/tokens/cost. Show one job, observed events, nullable inner counts and visibility; do not claim one total model call or complete cancellation. Reject under strict policy when required scope/deadline is unsupported. (CT-04/06/08) |
 | A20 — Catalog and policy scaling | Register many providers/tools and a policy allowing more than six roots. Lazy shortlist top-K tools, enforce advertised finite runtime caps, and record review coverage. Default/demo limits must not become hard product enums/ceilings; an untested integration stays unavailable. (PR-06, TL-02, CT-01) |
+| A21 — Shared progressive skill | Make one global and one workspace skill available to OpenAI/Anthropic/Gemini fixtures under the same catalog IDs. Load only relevant selected resources, respect workspace scope/context limits, and reject a skill's permission-expansion instruction. A script remains inert until a scoped authorized action. (EX-01/02/06/08) |
+| A22 — Trusted plugin bundle | Import a mock manifest referencing versioned skills/tools/MCP/backends once. Reject untrusted, invalid or digest-mismatched references without installation, startup execution or per-vendor copies. Vendor formats without a tested importer remain unsupported. (EX-03/06/08) |
+| A23 — Shared custom MCP | Mock local STDIO/negotiated HTTP servers expose one logical tool across provider adapters with collision-checked wire aliases. Reuse registration but isolate drafting branches' scratch/handles/results; reject a route unable to do so. Incompatible transport/missing auth/unavailable server dispatches nothing; secrets stay out of model-visible data/export. (EX-01/04/05/06/08, AG-03) |
+| A24 — Incapable profile and helper policy | A compatible profile uses an authorized shared tool directly; an incapable profile routes only to an existing approved helper when enabled. Helpers OFF, missing grant or vendor-exclusive unavailable capability creates no child or silent root/destination change. (EX-05, TL-01/04) |
+| A25 — Extension lifecycle and namespace | Pin version/digest; an update cannot hot-swap it. Disable/revoke/remove/supersede blocks pending actions unless the old pinned version remains explicitly enabled/authorized. Reject namespace/alias collisions and invalid wire lengths. Cancel attempts supported interruption; retain loaded-context/uncertain-completion records and safe provenance without secrets. (EX-06/07/08, CT-04) |
 
 ## Explicit non-goals
 
@@ -181,6 +197,8 @@ Search, code, scoped files, functions, MCP, SDK/CLI and hosted-agent candidates 
 included in the design, activated in stages after validation and grants. No hosted
 infrastructure is mandatory for core use. The design does not scrape account
 sessions, install backends silently, or grant unrestricted CLI execution.
+Shared skills/plugins/custom MCP are also design scope, not installed integrations
+or automatic compatibility with every vendor's plugin/hosted-tool format.
 
 The product requests useful answers and concise review findings, not private
 chain-of-thought. Previous conversation content sent to providers must be visible
@@ -195,6 +213,8 @@ in the run's context/provenance record; there is no hidden memory service.
 - Validate the local persistence and export format against the selected stack.
 - Validate backend-specific compatibility, credentials, granted action scopes,
   visibility, and supported cancellation before live use.
+- Validate shared extension manifests, namespaces, scope resolution, progressive
+  resource loading, broker transports, snapshots and lifecycle with mock fixtures.
 - Implement retrieval records separately from claim-support checks; evaluate both
   before making quality claims. Larger-team plans need bounded fanout and recorded
   coverage rather than assuming every agent reviews every other agent.

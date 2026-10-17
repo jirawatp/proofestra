@@ -8,6 +8,9 @@ challenge each other's answers, and help the user understand the evidence and
 remaining uncertainty. Agents can share a provider or use different providers and
 models; each can request bounded helpers and use compatible registered tools.
 The design aims to support many providers and tools through an extensible registry.
+Skills, plugins and custom MCP servers belong to a shared harness catalog, so
+connected providers can use authorized compatible capabilities without separate
+manual installations for each vendor.
 
 > **Status: requirements and design.** This repository contains the product
 > requirements, technical/API design, and a standalone interactive mockup with
@@ -41,6 +44,16 @@ stay fixed. Recheck grants before each action; missing scope inside an allowed
 route can receive an exact-action approval, without creating a blanket grant.
 Broader provider, route, or destination choices need a new user-configured run.
 
+A skill supplies versioned instructions and resources, loaded as needed; loading
+it grants no execution permission. A trusted plugin manifest bundles references
+to skills, tools, MCP servers and backends. A central MCP broker exposes shared
+namespaced tools through each provider's adapter, or an already authorized helper
+when the current profile cannot use them. Helper enablement and grants still apply.
+Shared registration does not share root-draft scratch, handles or results; each
+branch needs isolated tool state or the route is unavailable.
+Vendor-exclusive hosted tools and vendor plugin formats do not become universally
+compatible. See the [shared extension design](docs/extensions.md).
+
 Multiple models agreeing does **not** guarantee correctness. Models can share
 mistakes, cite nonexistent sources, and influence each other. Proofestra should
 make uncertainty visible and measure whether review improves answers, rather
@@ -51,6 +64,7 @@ than treating consensus as proof.
 - Chat interface, conversation history, and portable exports.
 - Configurable agent roles, model choices, and provider adapters.
 - Extensible tool and execution-backend registries, with automatic scoped routing.
+- Shared global/workspace skills, trusted plugin bundles and custom MCP integration.
 - Independent drafting, cross-review, and synthesis.
 - Bounded subagents with capability checks and explicit native-backend limitations.
 - Evidence provenance and transparent verification outcomes.
@@ -85,6 +99,7 @@ choices, proposed defaults, and dated changes without requiring the original cha
 | [Architecture](docs/architecture.md) | Proposed components, agent workflow, and trust boundaries |
 | [Agent policy](docs/agents.md) | Agent identity, model profiles, delegation, and shared limits |
 | [Tool policy](docs/tools.md) | Automatic routing, task grants, execution boundaries, and approvals |
+| [Shared extensions](docs/extensions.md) | Skills, plugin bundles, custom MCP, namespaces and lifecycle |
 | [Provider capabilities](docs/provider-capabilities.md) | Documented integrations, limitations, and validation status |
 | [Scaling](docs/scaling.md) | Configurable policy limits and larger-team workflow plans |
 | [Technical design](docs/technical-design.md) | Proposed stack, run states, data model, and security boundaries |
@@ -123,7 +138,12 @@ observed tool operations, and four native jobs. Server policy can configure othe
 limits; the demo editor's six-agent cap is only a demo constraint. A native job can
 contain unknown internal calls and is never described as one total model call.
 Implementation proceeds from mocks to API tools and then validated SDK/CLI
-backends. Paid calls remain deferred during this design phase.
+backends. Shared extension versions/digests are pinned for each run; updates cannot
+silently replace active definitions. Disabled, revoked, removed or superseded
+versions block pending use unless the pinned version is explicitly kept enabled
+and authorized. Loaded instructions and completed effects cannot be erased by Stop.
+This remains design only: no skill/plugin installation, MCP connection, live tool
+execution or paid provider call is performed by these documents or the mockup.
 
 ## License and commercial direction
 

@@ -15,6 +15,7 @@ For dated changes and source revisions, see the [decision log](logs/decisions.md
 | Every agent can request subagents | All three adapters support the same harness-managed delegation; child agents can also delegate within shared limits. |
 | Broad provider/tool coverage and automatic use of agent tools | Use extensible capability registries; individual provider/model/tool combinations need validation before availability is claimed. |
 | All provider tool surfaces in design scope | Cover built-in API tools, local agent apps/SDKs/CLIs, functions/MCP/local executors, and supported hosted agent services; activate tested integrations in stages. |
+| Shared skills, plugins and custom MCP | One harness catalog makes authorized compatible extensions eligible across connected providers; separate manual vendor installations are not the sharing mechanism. |
 | Friendly chat with independent cross-review | Keep final answers readable and make drafts, findings, uncertainty, and failures inspectable. |
 | Full Apache 2.0 core | UI, orchestration, adapters, verification, history/export, self-hosting, and evaluation stay open. |
 
@@ -32,6 +33,9 @@ live milestone; API tools precede validated SDK/CLI and hosted backends.
 | Quick tools/helpers OFF; Team tools AUTO and helpers ON | Quick has exactly one observable request/no retry only when both are OFF; opt-ins add work without root peer review. |
 | Automatic capability routing within prior grants | Use ready current-profile tools; fallback creating a managed helper requires helpers enabled. Tools ON/helpers OFF creates no managed child; never silently change roots, synthesis, destinations, installs or authentication. |
 | Lazy bounded top-K tool selection | Registry breadth must not load every tool into every prompt; selection is separate from permission. |
+| Shared global/workspace extension catalog | Skills progressively supply versioned instructions/resources; plugin manifests bundle references; central MCP brokering supplies capabilities through model adapters or approved enabled helpers. Skills/imports never grant permission. |
+| Canonical namespaces and immutable versions/digests | Collision-checked provider aliases respect wire limits and resolve to shared identities/grants. Reject silent overwrite/hot-swap; disabled/revoked/removed/superseded versions block dispatch unless the pinned old version remains explicitly enabled/authorized. |
+| Trusted imports and transport-specific MCP | Local STDIO and supported negotiated HTTP use scoped broker auth/workers. No import-time execution, universal vendor-plugin importer, exclusive hosted-tool portability, or model-visible credentials is assumed. Shared registration does not share branch scratch/handles/results. |
 | Reuse matching task grants | Covered reads, sandbox and reversible workspace work proceed automatically. Pause only on missing/revoked/exceeded grants or consequential actions outside them. |
 | Fixed allowlists, current permission checks | Freeze route/tool/backend/profile/destination allowlists and initial grant references. Recheck validity/revocation before dispatch; exact-action approval inside those routes creates no blanket grant. Broader allowlist/provider/destination choices need a new user-configured run. |
 | Inherit child profile/backend and narrowed scope | Alternates need user preapproval; tool/model output cannot expand permissions or destinations. |
@@ -62,6 +66,8 @@ other subagents. Use approved harness-managed nesting or report unsupported.
 Additional provider plugins and OpenAI-compatible adapters remain candidates until
 contract tests pass. See [tool policy](tools.md), [scaling](scaling.md), and
 [provider capabilities](provider-capabilities.md). Choices remain provisional.
+The [extension policy](extensions.md) defines the shared catalog and lifecycle;
+it does not assert that any plugin, skill script or custom MCP connection is installed.
 
 ## Remaining implementation decisions
 
@@ -73,6 +79,8 @@ contract tests pass. See [tool policy](tools.md), [scaling](scaling.md), and
   implementation. No packages are installed by these design documents.
 - Validate proposed limits, same-provider controls, parent/child visibility,
   lazy catalogs, automatic routing, grant boundaries and native jobs through mocks.
+- Validate extension namespaces/global-workspace scopes, manifest references and
+  digests, progressive loading, broker adapters, branch state, updates and exports.
 - Add a versioned price table only if useful; show unknown cost honestly until then.
 - Review provider data handling for the actual API products/accounts selected.
 

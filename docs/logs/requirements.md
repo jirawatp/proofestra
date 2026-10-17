@@ -35,6 +35,32 @@ snapshot predates those IDs. No entry claims a live implementation or measured a
 - **Evidence:** Source revisions and relative references are checked, and the
   published branch is verified from a fresh checkout before handoff.
 
+## RLOG-009 — Shared skills, plugins and custom MCP
+
+- **Date / status:** 2026-10-17; user-confirmed expansion to shared skills, plugins
+  and custom MCP across connected providers. Catalog formats, broker mechanics and
+  lifecycle controls below are proposed design, not installed integrations.
+- **Change:** Add EX-01–EX-08 and A21–A25. One global/workspace harness catalog
+  supplies progressively loaded versioned skills, trusted manifest bundles and
+  brokered local STDIO/negotiated HTTP MCP. Namespaced logical IDs map through
+  compatible provider adapters or an existing authorized helper when enabled;
+  sharing does not require manual vendor-by-vendor copies or make exclusive
+  hosted tools/vendor plugin formats universally compatible.
+- **Boundaries:** Imports/skills grant no permission and execute no scripts by
+  themselves. Pin immutable versions/digests, reject namespace/wire-name collisions,
+  recheck current grants/enablement, and block disabled/revoked/removed/superseded
+  definitions unless the pinned old version is explicitly retained enabled and
+  authorized. Shared registration must preserve per-branch draft/tool-state
+  isolation and central secret protection; Stop is not erasure or rollback.
+- **Trace / source:** Current user request; preceding baseline [1374641]. This
+  change belongs to its containing commit. See [requirements](../requirements.md),
+  [extension policy](../extensions.md), [decisions](../decisions.md),
+  [evaluation](../evaluation.md) and [roadmap](../roadmap.md). Extends RLOG-004/006/007
+  without superseding their compatibility, grant, helper-policy or evidence limits.
+- **Evidence:** Documentation/ID/link checks only; A21–A25 specify future mock
+  acceptance. No skill/plugin installation, custom MCP connection, live execution
+  or paid compatibility check has been performed for this change.
+
 ## Updating this log
 
 - Append the next unused `RLOG-NNN` in chronological recorded order; never renumber
@@ -53,3 +79,4 @@ snapshot predates those IDs. No entry claims a live implementation or measured a
 [f2d6863]: https://github.com/jirawatp/proofestra/commit/f2d6863c515d75136bb700d00d0062fc5a82ae9b
 [0760660]: https://github.com/jirawatp/proofestra/commit/07606603baa30f6a4f79091c0cf11c06ad268d7e
 [7a23553]: https://github.com/jirawatp/proofestra/commit/7a235536be0a8df835f2f897a07f5f436eef2bbe
+[1374641]: https://github.com/jirawatp/proofestra/commit/13746413cbb076c1ec9458090d9c89fdd6178af8

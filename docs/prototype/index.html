@@ -17,6 +17,7 @@
 .config-label{display:block;font-size:11px;font-weight:650;margin:14px 0 6px}.config-select{width:100%;border:1px solid #cbd8e8;border-radius:6px;padding:7px;background:#fff;color:var(--ink);font-size:11px}.agent-entry{border-bottom:1px solid var(--line);padding:12px 0}.agent-top{display:flex;gap:6px;align-items:center}.agent-top label{display:flex;gap:8px;align-items:center;min-width:0;flex:1;font-size:12px;font-weight:650}.agent-top input,.helper-toggle input{accent-color:var(--blue);margin:0}.agent-meta{font-size:10px;color:var(--muted);margin:4px 0 0 21px}.remove-agent{font-size:17px;line-height:1;padding:3px;color:var(--muted)}.add-agent{margin-top:12px!important;border-bottom:1px solid var(--line);padding-bottom:12px}.add-agent summary{color:var(--blue)!important}.add-agent input[type=text]{width:100%;border:1px solid #cbd8e8;border-radius:6px;padding:7px;font-size:12px}.add-agent button{margin-top:12px}.helper-toggle{display:flex;gap:8px;align-items:flex-start;font-size:12px;font-weight:600;margin-top:20px}.helper-toggle input{margin-top:4px}.tree-root{border-top:1px solid var(--line);padding:13px 0}.tree-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:12px;font-weight:650}.tree-status{font-weight:500;font-size:10px;color:var(--muted);white-space:nowrap}.tree-meta{font-size:10px;color:var(--muted);margin:4px 0 7px;overflow-wrap:anywhere}.tree-root p{font-size:12px;margin:7px 0;color:var(--muted)}.tree-child{margin:12px 0 0 13px;padding:0 0 0 13px;border-left:2px solid #cbdcf2}.tree-child .tree-head{font-weight:600}.tree-notice{font-size:12px;padding:10px 12px;border-left:3px solid #c49a2d;background:#fffae8;margin-top:12px}.budget-note{font-size:10px;color:var(--muted);margin:9px 0 0}.config-note{font-size:11px;color:var(--muted);margin:8px 0}.rail-intro{margin-bottom:14px}.segmented button{white-space:nowrap}.rail .section-title{margin-top:18px}.helper-limits{font-size:10px;color:var(--muted);line-height:1.7;margin-top:8px}.tree-state{font-size:12px;color:var(--muted)}
 @media(min-width:641px){.rail{max-height:calc(100vh - 81px);overflow-y:auto;position:sticky;top:0;align-self:start}}@media(max-width:640px){.tree-head{flex-wrap:wrap}.tree-status{white-space:normal}}
 .evidence-title,.run-title{flex-wrap:wrap}.tree-head,.agent-top label{overflow-wrap:anywhere}
+.extension-entry{padding:11px 0;border-bottom:1px solid var(--line)}.extension-toggle{display:flex;align-items:flex-start;gap:7px;font-size:11px;font-weight:600}.extension-toggle input{margin:3px 0 0;accent-color:var(--blue)}.extension-entry p{margin:5px 0 0!important;overflow-wrap:anywhere}.extension-provenance{font-size:10px;color:var(--muted);overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -41,7 +42,7 @@
           <details class="review-details" id="reviewDetails" hidden><summary id="detailsSummary">Independent drafts & review notes</summary><div class="review-content" id="reviewContent"></div></details>
           <div class="completion" id="completion" hidden><span id="completionText"></span><button class="text-button" id="export">Export demo record</button></div>
         </section>
-        <div class="composer-area"><div class="scenario-row"><label for="scenario">Demo scenario</label><select id="scenario"><option value="complete">Full review</option><option value="delegation">Subagents: bounded delegation</option><option value="automatic">Automatic tools</option><option value="permission">Action needs permission</option><option value="unsupported">Unsupported capability</option><option value="disagreement">Unresolved disagreement</option><option value="partial">One agent unavailable</option></select><span>Selected example: <span id="selectedExample">Database choice</span></span></div><form id="composerForm"><div class="composer"><label class="sr-only" for="prompt">Message your team</label><textarea id="prompt" placeholder="Try an example above, or type a message…" rows="2" maxlength="4000"></textarea><div class="composer-footer"><span class="composer-hint" id="composerHint">3 agents · 3 providers · Demo</span><button class="send" id="send" type="submit">Send</button></div></div><div class="error-message" id="error" role="alert"></div></form><p class="disclosure">This design executes no API, CLI, MCP, or local tool. Answers use the selected example.<br>Checks completed does not mean correctness is guaranteed.</p></div>
+        <div class="composer-area"><div class="scenario-row"><label for="scenario">Demo scenario</label><select id="scenario"><option value="complete">Full review</option><option value="delegation">Subagents: bounded delegation</option><option value="automatic">Automatic tools</option><option value="extensions">Shared extensions</option><option value="permission">Action needs permission</option><option value="unsupported">Unsupported capability</option><option value="disagreement">Unresolved disagreement</option><option value="partial">One agent unavailable</option></select><span>Selected example: <span id="selectedExample">Database choice</span></span></div><form id="composerForm"><div class="composer"><label class="sr-only" for="prompt">Message your team</label><textarea id="prompt" placeholder="Try an example above, or type a message…" rows="2" maxlength="4000"></textarea><div class="composer-footer"><span class="composer-hint" id="composerHint">3 agents · 3 providers · Demo</span><button class="send" id="send" type="submit">Send</button></div></div><div class="error-message" id="error" role="alert"></div></form><p class="disclosure">This design executes no API, CLI, MCP, or local tool. Answers use the selected example.<br>Checks completed does not mean correctness is guaranteed.</p></div>
       </main>
       <aside class="rail" aria-label="Team configuration">
         <h2>Your agents</h2><p class="rail-intro" id="railIntro">Three agents. One review round.</p><p class="config-note">Demo capacity: 6 roots.<br>Deployment limits are configurable.</p>
@@ -51,6 +52,7 @@
         <label class="section-title" for="synthesizer" id="synthLabel" style="display:block">Final answer by</label><select class="synth-select" id="synthesizer"></select><p class="small" id="synthHint">Select an agent, including same-provider agents.</p>
         <label class="helper-toggle"><input type="checkbox" id="helpers" checked><span>Allow subagents</span></label><label class="config-label" for="maxDepth">Maximum helper depth</label><select class="config-select" id="maxDepth"><option value="1">1 level</option><option value="2" selected>2 levels</option></select><p class="helper-limits">Proposed defaults: 2 children per agent,<br>6 helpers, 12 agents total. Shared limits.</p>
         <details id="toolPolicy"><summary>Automatic tool routing</summary><label class="helper-toggle"><input type="checkbox" id="autoTools" checked><span>Allow configured read / search / scratch code</span></label><label class="config-label" for="toolRequest">Capability request for demo</label><select class="config-select" id="toolRequest"><option value="web-code">Web research + sandboxed code</option><option value="web">Web research</option><option value="code">Sandboxed code</option><option value="workspace">Workspace agent</option></select><p class="small">The planner chooses from this approved registry, not model votes. Selection never creates a permission grant.</p><div class="budget"><div><span>Web research</span><b>API tool · Demo</b></div><div><span>Sandboxed code</span><b>MCP/local · Demo</b></div><div><span>Workspace agent</span><b>SDK/CLI · Demo</b></div></div><p class="small">Approved helper profiles inherit the parent's provider: Demo research, Demo scratchpad, Demo workspace. These mappings illustrate routing; they make no vendor capability claim.</p><p class="small">A matching task grant can allow scoped writes. A send/publish action without a matching grant stays paused; nothing is sent.</p></details>
+        <details id="extensionCatalog"><summary>Shared extensions</summary><p class="small">A shared catalog for compatible registered adapters. No per-provider installation; no universal native plugin import.</p><div class="extension-entry"><label class="extension-toggle"><input type="checkbox" id="sharedSkill" checked><span>Review brief · Skill</span></label><p>Workflow instructions · Global enabled binding<br>Origin: Demo global catalog · demo-v1</p></div><div class="extension-entry"><label class="extension-toggle"><input type="checkbox" id="sharedPlugin" checked><span>Review kit · Plugin</span></label><p>Workspace bundle referencing this skill and MCP binding. A bundle grants no permission.</p></div><div class="extension-entry"><label class="extension-toggle"><input type="checkbox" id="sharedMcp" checked><span>Workspace notes · Custom MCP</span></label><p>Global registration: workspace_notes<br>Workspace binding · Demo, not connected<br>Tool: ext.workspace_notes.lookup<br>Connection label: notes-read-demo<br>Credential references stay broker-only.</p></div><label class="extension-toggle" style="margin-top:12px"><input type="checkbox" id="extensionGrant" checked><span>Simulate existing scoped notes-read grant</span></label><p class="small">Instructions cannot authorize a tool. The harness function bridge checks the binding, adapter compatibility, and matching grant. Registration is shared; root requests and results stay isolated until the draft barrier.</p></details>
         <div class="budget"><div><span>Planned outer invocations</span><b id="plannedCalls">7 base</b></div><div><span>Provider request cap</span><b id="maxCalls">32</b></div><div><span>Observed tool operation cap</span><b>64</b></div><div><span>Native job cap</span><b>4</b></div><div><span>Calls at once</span><b id="concurrency">3 total / 2 per provider</b></div><div><span>Review rounds</span><b id="rounds">1</b></div><p class="budget-note" id="budgetNote">Helpers are allowed but unused in this scenario.</p></div>
         <div class="privacy-note"><svg width="14" height="17" viewBox="0 0 14 17" fill="none" aria-hidden="true"><path d="M2 7h10v8H2zM4 7V4a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg><div><strong>Your keys, your setup</strong>Live version: keys configured on your server. Prompts and review content go to your selected providers.<br><button class="text-button" id="connectionRail" style="margin-top:8px">View provider setup</button></div></div>
         <details><summary>Proposed run limits</summary><p>300-second overall deadline; 45 seconds per call. Request at most 2,048 output tokens per call and 65,536 output tokens in total. Every root, helper, continuation, review, retry, and synthesis shares these limits. Input charges are separate.</p><p>At most one retry per step after an explicit rejection before generation, within every remaining limit. Ambiguous timeouts are not automatically retried.</p><p>These are proposed live defaults. The fast demo timers do not measure actual provider performance or enforce a monetary budget.</p></details>
@@ -72,12 +74,13 @@ const samples = {
 };
 const profileLabels = {"demo-balanced":"Demo balanced","demo-analytical":"Demo analytical","demo-concise":"Demo concise","demo-research":"Demo research","demo-scratchpad":"Demo scratchpad","demo-workspace":"Demo workspace"};
 const toolRegistry = {web:{name:"Web research",backend:"Provider API tool",profile:"demo-research",directProfile:"demo-balanced"},code:{name:"Sandboxed code",backend:"MCP/local tool",profile:"demo-scratchpad",directProfile:"demo-analytical"},workspace:{name:"Workspace agent",backend:"Agent SDK/CLI",profile:"demo-workspace",directProfile:null}};
+const extensionRegistry = {skillId:"skill.review_brief",skillRevision:"demo-v1",skillOrigin:"Demo global catalog",skillInstructions:"Identify assumptions, separate source support from agreement, and preserve unresolved uncertainty.",pluginId:"plugin.review_kit",pluginOrigin:"Demo workspace bundle",registrationId:"workspace_notes",bindingId:"workspace.notes_read",toolId:"ext.workspace_notes.lookup",connectionLabel:"notes-read-demo",grantRef:"grant.notes_read_demo"};
 const profileFocus = {"demo-balanced":"Balance the recommendation with its assumptions.","demo-analytical":"Challenge missing conditions and counterexamples.","demo-concise":"Keep the practical decision and limits clear."};
 let nextAgent = 1, agents = [], agentControls = [];
 let mode = "team", selected = "database", generation = 0, timers = [], running = false, record = null;
 const helperPreferences = {team:true,quick:false};
 const toolPreferences = {team:true,quick:false};
-const configIds = ["teamPreset","agentProvider","agentProfile","agentName","addAgent","synthesizer","helpers","maxDepth","scenario","quick","team","autoTools","toolRequest"];
+const configIds = ["teamPreset","agentProvider","agentProfile","agentName","addAgent","synthesizer","helpers","maxDepth","scenario","quick","team","autoTools","toolRequest","sharedSkill","sharedPlugin","sharedMcp","extensionGrant"];
 
 function addElement(parent, tag, text = "", className = "") {
   const node = document.createElement(tag);
@@ -168,10 +171,16 @@ function updateConfig() {
   const routed = $("scenario").value === "automatic" && $("autoTools").checked && parent ? requestedCapabilities().filter(cap => parent.profile === toolRegistry[cap].directProfile || helperPreferences[mode]).length : 0;
   const toolExtra = $("scenario").value === "automatic" && $("autoTools").checked ? routed + 1 : 0;
   $("plannedCalls").textContent = ["permission","unsupported"].includes($("scenario").value) ? `${team ? enabled.length : 1}; then pause` : toolExtra ? `${base + toolExtra} outer` : delegates ? `${base + 3} (${base} base + 3)` : `${base} base`;
+  if ($("scenario").value === "extensions") {
+    const roots = team ? enabled.length : 1;
+    const ready = toolPreferences[mode] && ["sharedSkill","sharedPlugin","sharedMcp","extensionGrant"].every(id=>$(id).checked);
+    $("plannedCalls").textContent = ready ? `${base + roots} API + ${roots} MCP` : `${roots}; then blocked`;
+  }
   $("maxCalls").textContent = String(effectiveCap());
   $("concurrency").textContent = "3 total / 2 per provider";
   $("rounds").textContent = team ? "1" : "0";
   $("budgetNote").textContent = $("scenario").value === "automatic" ? "Tool operations are reported separately. SDK/CLI internal usage may be unknown; this is a simulated route." : delegates ? "Adds 2 helper calls and 1 parent continuation." : helperPreferences[mode] ? "Subagents are allowed but unused in this scenario." : "Subagents are off. No helper calls are planned.";
+  if ($("scenario").value === "extensions") $("budgetNote").textContent = "Instruction loads are not API or tool calls. One shared registration, isolated root branches, no extra helpers.";
   const providerCount = new Set(enabled.map(agent => agent.provider)).size;
   const responder = enabled.find(agent => agent.id === $("synthesizer").value);
   $("composerHint").textContent = team ? `${enabled.length} roots · ${providerCount} providers · Demo` : `${responder ? responder.name : "No agent selected"} · ${helperPreferences.quick ? "Helpers allowed" : "No helpers"} · Demo`;
@@ -213,7 +222,10 @@ function renderTree() {
     if (agent.delegation) addElement(block, "p", agent.delegation);
     if (agent.routingReason) addElement(block,"p",`Routing reason: ${agent.routingReason}`);
     if (agent.backend) addElement(block,"p",`Backend: ${agent.backend} · Demo. Destination: ${agent.provider} / ${profileLabels[agent.profile]}.`);
-    if (!agent.parentId && record.status !== "running" && record.mode === "team" && !agent.review) addElement(block, "p", record.permissionRequired || record.unsupportedCapability ? "Peer review was not run after the blocked action or capability request." : "Peer review: skipped; no peer draft or this agent was unavailable.");
+    if (agent.instructionProvenance) addElement(block,"p",`Skill instructions: ${agent.instructionProvenance.status} · ${agent.instructionProvenance.skillId}@${agent.instructionProvenance.revision} · ${agent.instructionProvenance.origin}. Instructions grant no tool authority.`);
+    if (agent.extensionStatus) addElement(block,"p",`Shared function bridge: ${agent.extensionStatus} · branch:${agent.id}. Tool request and result remain private to this branch until the root draft barrier.`);
+    if (agent.extensionResult) addElement(block,"p",agent.extensionResult);
+    if (!agent.parentId && record.status !== "running" && record.mode === "team" && !agent.review) addElement(block, "p", record.permissionRequired || record.unsupportedCapability || record.extensionBlocked ? "Peer review was not run after the blocked action, capability, or extension request." : "Peer review: skipped; no peer draft or this agent was unavailable.");
     record.agents.filter(child => child.parentId === agent.id).forEach(child => renderNode(child, block));
   }
   rootNodes().forEach(agent => renderNode(agent, container));
@@ -226,10 +238,12 @@ function renderTree() {
       addElement(item,"div",`${operation.capability} · ${operation.status}`,"tree-head");
       addElement(item,"p",`${operation.backend} · Demo · ${operation.provider} · ${operation.agentId}`);
       addElement(item,"p",`Destination: ${operation.destination}. Reason: ${operation.reason}`);
+      if (operation.registrationId) addElement(item,"p",`Tool: ${operation.toolId} · Registration: ${operation.registrationId} · Workspace binding: ${operation.bindingId} · Connection label: ${operation.connectionLabel} (nonsecret) · Grant: ${operation.grantRef} · Isolation: ${operation.branchId}.`);
       if (operation.result) addElement(item,"p",operation.result);
     });
   }
-  if (record.permissionRequired) addElement(container,"p",`Permission required: publish “Proofestra design is ready to review” to the Demo public project channel. No matching task grant exists. Nothing was sent or published.`,"tree-notice");
+  if (record.extensionSnapshot) addElement(container,"p",`${record.instructionReads.filter(read=>read.status==="loaded").length} shared skill instruction loads; ${record.toolOperations.filter(operation=>operation.registrationId&&operation.status==="completed").length} observed MCP operations. One Demo broker registration: ${record.extensionSnapshot.registrationId}. Global registration + workspace binding; no connection or vendor-native plugin installation. Registration metadata is shared, never another root's scratch or tool result.`,"tree-notice");
+  if (record.permissionRequired) addElement(container,"p",record.permissionNotice || `Permission required: publish “Proofestra design is ready to review” to the Demo public project channel. No matching task grant exists. Nothing was sent or published.`,"tree-notice");
   if (record.scenario === "automatic") addElement(container,"p",`${record.apiInvocations} provider API invocations; ${record.toolOperations.filter(op=>op.backend!=="Agent SDK/CLI"&&op.status==="completed").length} known tool operations; ${record.agentJobs} SDK/CLI jobs. ${record.internalUsageUnknown ? "Internal model/tool usage unknown. Live adapter policy admission has not been validated." : "All activity is simulated."}`,"tree-notice");
   const calls = addElement(container, "details");
   calls.id = "callDetails"; calls.open = callsOpen;
@@ -248,7 +262,7 @@ function runBatch(run, tasks, done) {
       if (next < 0) break;
       const task = pending.splice(next, 1)[0], agent = nodeById(task.agentId);
       if (task.backend === "Agent SDK/CLI" ? record.agentJobs >= 4 : record.apiInvocations >= record.maxAttempts) { record.notice = "A shared observable-request or native-job cap stopped further dispatch."; record.synthesisSkipped = true; finish(); return; }
-      const call = {id:`call-${record.attempts + 1}`,agentId:agent.id,parentAgentId:agent.parentId,provider:agent.provider,profile:agent.profile,stage:task.stage,backend:task.backend || "Provider API",status:"running"};
+      const call = {id:`call-${record.attempts + 1}`,agentId:agent.id,parentAgentId:agent.parentId,branchId:`branch:${agent.id}`,contextScope:task.stage==="review"||task.stage==="synthesis"?"peer_drafts_after_barrier":"own_branch_and_frozen_shared_context",resultOperationId:task.resultOperationId || null,provider:agent.provider,profile:agent.profile,stage:task.stage,backend:task.backend || "Provider API",status:"running"};
       record.calls.push(call); record.attempts++;
       if (task.backend === "Agent SDK/CLI") { record.agentJobs++; record.internalUsageUnknown = true; } else record.apiInvocations++;
       active++; byProvider.set(agent.provider, (byProvider.get(agent.provider) || 0) + 1);
@@ -369,6 +383,55 @@ function routeTools(run) {
   }
   next();
 }
+function loadSharedInstructions() {
+  record.extensionSnapshot = {...extensionRegistry,skillScope:"global",pluginScope:"workspace",serverScope:"global",bindingScope:"workspace",skillEnabled:$("sharedSkill").checked,pluginEnabled:$("sharedPlugin").checked,mcpEnabled:$("sharedMcp").checked,hasReadGrant:$("extensionGrant").checked,readiness:"demo_only_not_connected",brokerRegistrations:[extensionRegistry.registrationId]};
+  rootNodes().forEach(agent => {
+    const read = {agentId:agent.id,skillId:extensionRegistry.skillId,revision:extensionRegistry.skillRevision,origin:extensionRegistry.skillOrigin,scope:"global",status:record.extensionSnapshot.skillEnabled?"loaded":"disabled",authority:"workflow_instructions_only"};
+    record.instructionReads.push(read); agent.instructionProvenance = read;
+    agent.extensionStatus = "Demo adapter declares a compatible harness function bridge";
+  });
+}
+function sharedExtensions(run) {
+  const snapshot = record.extensionSnapshot, roots = rootNodes();
+  roots.forEach(agent=>{agent.draft=null;agent.task="Request own-branch workspace note through shared function bridge";});
+  function blocked(message, permission = false) {
+    record.extensionBlocked = !permission; record.permissionRequired = permission;
+    record.notice = message; if (permission) record.permissionNotice = message;
+    stage("draftStep","error"); $("reviewStep").textContent="Review not run"; $("answerStep").textContent=permission?"Permission required":"Extension unavailable";
+    roots.forEach(agent=>agent.extensionStatus=permission?"Awaiting matching notes-read grant":"Blocked; no binding was silently enabled"); finish();
+  }
+  if (!snapshot.skillEnabled || !snapshot.pluginEnabled || !snapshot.mcpEnabled) {
+    blocked("The selected shared-extension bundle contains a disabled skill, plugin binding, or MCP binding. Nothing was re-enabled or installed, and no MCP operation was dispatched."); return;
+  }
+  if (!record.autoToolsAllowed) { blocked("Tool permission is off for this mode. Shared instructions were loaded, but they cannot authorize the custom MCP tool. No helper or MCP operation was dispatched."); return; }
+  if (!snapshot.hasReadGrant) {
+    blocked(`Permission required for ${snapshot.toolId}: read the selected example topic from the Demo workspace-notes binding, once per isolated root branch. No matching scoped grant exists. Connection label ${snapshot.connectionLabel} is not a credential or authority. No MCP operation was dispatched.`,true); return;
+  }
+  if (record.toolOperations.length + roots.length > record.maxToolOperations) { blocked("The shared observed-tool-operation budget cannot cover this root batch. No MCP operation was dispatched."); return; }
+  let active=0; const pending=[...roots];
+  function pump() {
+    if (generation!==run || !running) return;
+    if (!pending.length && active===0) {
+      $("runDetail").textContent="Each root is continuing with only its own MCP result. Peer drafts remain unavailable until the draft barrier.";
+      runBatch(run,roots.map(agent=>({agentId:agent.id,stage:"continuation",resultOperationId:agent.extensionOperationId})),()=>{
+        roots.forEach(agent=>{agent.draft=`${draftText(agent)} The shared review brief and this branch's simulated note informed this draft; claim support is unverified.`;agent.extensionStatus="Own result returned; continuation complete";});
+        completeDrafts(run);
+      }); return;
+    }
+    while (active<2 && pending.length) {
+      const agent=pending.shift(), operation={id:`mcp-operation-${record.toolOperations.length+1}`,capability:"Shared workspace note",backend:"MCP/local tool",provider:agent.provider,agentId:agent.id,status:"running",destination:"Demo workspace-notes broker binding; no connection",reason:"Compatible configured adapter uses the shared function bridge and existing scoped read grant.",registrationId:snapshot.registrationId,bindingId:snapshot.bindingId,toolId:snapshot.toolId,connectionLabel:snapshot.connectionLabel,grantRef:snapshot.grantRef,branchId:`branch:${agent.id}`,arguments:{topic:labels[record.example],branchId:`branch:${agent.id}`},visibility:"request_and_result_private_until_root_draft_barrier"};
+      record.toolOperations.push(operation); active++;
+      agent.status="Waiting for own MCP result";agent.extensionStatus=`${operation.toolId} · matching ${snapshot.grantRef} · own branch only`;agent.extensionOperationId=operation.id;
+      $("runDetail").textContent=`The same ${snapshot.registrationId} registration serves separate root requests. Shared registration does not share scratch space or results.`;
+      renderTree();
+      later(run,650,()=>{
+        operation.status="completed";operation.result=`Simulated note for branch:${agent.id}: state the workload assumptions and retain unsupported claims as unverified. No other root's request or result was supplied.`;
+        agent.extensionResult=operation.result;agent.extensionStatus="Own result ready; no peer result received";active--;renderTree();pump();
+      });
+    }
+  }
+  pump();
+}
 function afterInitialDrafts(run) {
   rootNodes().filter(agent => agent.id !== record.failedAgentId).forEach(agent => agent.draft = draftText(agent));
   if (record.failedAgentId) {
@@ -378,6 +441,8 @@ function afterInitialDrafts(run) {
       failed.status = "Unavailable after safe retry";
       completeDrafts(run);
     });
+  } else if (record.scenario === "extensions") {
+    sharedExtensions(run);
   } else if (record.scenario === "permission" || record.scenario === "unsupported") {
     record.permissionRequired = record.scenario === "permission";
     record.unsupportedCapability = record.scenario === "unsupported";
@@ -407,10 +472,10 @@ function synthesize(run) {
 function renderAnswer() {
   const sample = samples[record.example], answer = $("answer"), synth = selectedSynth();
   answer.replaceChildren();
-  if (record.permissionRequired || record.unsupportedCapability) {
-    addElement(answer,"h2",record.permissionRequired ? "Permission required. Nothing sent." : "No approved tool route.");
+  if (record.permissionRequired || record.unsupportedCapability || record.extensionBlocked) {
+    addElement(answer,"h2",record.permissionRequired ? record.extensionSnapshot?"Permission required. No MCP call.":"Permission required. Nothing sent." : record.extensionBlocked?"Shared extension unavailable.":"No approved tool route.");
     addElement(answer,"p",record.notice);
-    if (record.permissionRequired) addElement(answer,"div","Proposed action: publish “Proofestra design is ready to review” to the Demo public project channel. A matching grant must cover this destination and content. A task's existing grant may already cover other scoped writes; this sample has none.","callout warning");
+    if (record.permissionRequired) addElement(answer,"div",record.permissionNotice || "Proposed action: publish “Proofestra design is ready to review” to the Demo public project channel. A matching grant must cover this destination and content. A task's existing grant may already cover other scoped writes; this sample has none.","callout warning");
   } else if (record.synthesisSkipped) {
     addElement(answer,"h2","Drafts available. No final answer.");
     addElement(answer,"p",`${synth.name} (${synth.id}), your selected synthesizer, was unavailable. Read the available labeled drafts and findings below. No other agent was substituted.`);
@@ -418,30 +483,32 @@ function renderAnswer() {
     addElement(answer,"h2",sample.title); addElement(answer,"p",sample.intro);
     const list = addElement(answer,"ul"); sample.bullets.forEach(text => addElement(list,"li",text));
   }
-  if (record.mode === "quick" && !record.permissionRequired && !record.unsupportedCapability) addElement(answer,"div", record.delegationRequested ? "Quick + helpers: one parent used two child results and continued. No peer review or separate synthesis occurred; helpers are not independent reviewers." : "Quick response: one simulated parent draft. No peer review or separate synthesis occurred.","callout warning");
+  if (record.mode === "quick" && !record.permissionRequired && !record.unsupportedCapability && !record.extensionBlocked) addElement(answer,"div", record.delegationRequested ? "Quick + helpers: one parent used two child results and continued. No peer review or separate synthesis occurred; helpers are not independent reviewers." : "Quick response: one simulated parent draft. No peer review or separate synthesis occurred.","callout warning");
   else if (record.failedAgentId) {
     const failed = nodeById(record.failedAgentId);
     addElement(answer,"div",`${failed.name} (${failed.id}) rejected its draft request before generation and rejected one safe retry. Other agents using ${failed.provider} are not marked failed. ${record.reviewCount ? `${record.reviewCount} available roots reviewed their peers.` : "Only one root draft survived; all peer reviews were skipped."} This is a partial result.`,"callout warning");
   } else if (record.scenario === "disagreement") addElement(answer,"div",`Unresolved: ${sample.disagreement}`,"callout warning");
-  else if (!record.permissionRequired && !record.unsupportedCapability) addElement(answer,"div",sample.caution,"callout");
+  else if (!record.permissionRequired && !record.unsupportedCapability && !record.extensionBlocked) addElement(answer,"div",sample.caution,"callout");
   if (record.toolBlocked || record.readinessGap) addElement(answer,"div",record.readinessGap ? "Live policy remains unvalidated. SDK/CLI internal usage is unknown; one job is not one total model call. Strict policy rejects a missing required inner cap. An explicitly admitted bounded-job policy may retain unknown counts while enforcing approved scope, deadlines, and job limits." : "A requested capability was blocked by the configured permission scope. No new provider, profile, or tool permission was silently added.","callout warning");
   const evidence = addElement(answer,"section","","evidence"), title = addElement(evidence,"div","Sources & information","evidence-title");
   addElement(title,"span",record.sourceStatus === "simulated_retrieval_support_unverified" ? "Simulated retrieval; support unverified" : "Not retrieved or verified");
   addElement(evidence,"p","Information used: the selected example and preset illustrative outputs. A mock search result represents retrieval, not verified support for a claim. No real source, API, CLI, MCP server, sandbox, or workspace was accessed.");
+  if (record.extensionSnapshot) addElement(evidence,"p","The shared skill supplied workflow instructions, not evidence or permission. Custom MCP notes are simulated, isolated branch results; sharing a registration does not verify their contents.");
   answer.hidden = false;
 }
 function finish() {
-  record.status = record.permissionRequired ? "permission_required" : record.failedAgentId || record.synthesisSkipped || record.toolBlocked || record.readinessGap || record.unsupportedCapability ? "partial" : "completed";
-  rootNodes().forEach(agent => { if (agent.id !== record.failedAgentId) agent.status = record.permissionRequired ? "Waiting for task grant" : record.unsupportedCapability ? "Unsupported route" : "Complete"; });
-  stage("answerStep", record.synthesisSkipped || record.permissionRequired || record.unsupportedCapability ? "error" : "complete");
-  $("runTitle").textContent = record.permissionRequired ? "Paused for a matching action grant" : record.unsupportedCapability ? "Stopped; no approved capability route" : record.synthesisSkipped ? "Partial run; labeled drafts available" : record.status === "partial" ? "Finished with missing checks or readiness" : record.mode === "quick" ? "Parent response finished" : "Team review finished";
-  $("runDetail").textContent = record.permissionRequired ? "No matching task grant covers this destination and content. Nothing was sent or published." : record.unsupportedCapability ? "No approved backend/profile supports this capability. No fallback was silently added." : record.synthesisSkipped ? "Selected synthesis was skipped. No replacement agent was used." : record.mode === "quick" ? "Parent response ready. Peer review was not requested. Sources remain unverified." : "Available stages finished. No external source verification occurred.";
-  $("resultStatus").textContent = record.permissionRequired ? "Permission required" : record.unsupportedCapability ? "Unsupported" : record.status === "partial" ? "Partial result" : record.mode === "quick" ? record.delegationRequested ? "Quick + helpers" : "Unreviewed" : record.scenario === "disagreement" ? "Open question" : "Review complete";
+  record.status = record.permissionRequired ? "permission_required" : record.failedAgentId || record.synthesisSkipped || record.toolBlocked || record.readinessGap || record.unsupportedCapability || record.extensionBlocked ? "partial" : "completed";
+  rootNodes().forEach(agent => { if (agent.id !== record.failedAgentId) agent.status = record.permissionRequired ? "Waiting for task grant" : record.extensionBlocked?"Shared extension blocked":record.unsupportedCapability ? "Unsupported route" : "Complete"; });
+  stage("answerStep", record.synthesisSkipped || record.permissionRequired || record.unsupportedCapability || record.extensionBlocked ? "error" : "complete");
+  $("runTitle").textContent = record.permissionRequired ? "Paused for a matching action grant" : record.extensionBlocked?"Stopped; shared extension unavailable":record.unsupportedCapability ? "Stopped; no approved capability route" : record.synthesisSkipped ? "Partial run; labeled drafts available" : record.status === "partial" ? "Finished with missing checks or readiness" : record.mode === "quick" ? "Parent response finished" : "Team review finished";
+  $("runDetail").textContent = record.permissionRequired ? record.permissionNotice || "No matching task grant covers this destination and content. Nothing was sent or published." : record.extensionBlocked?record.notice:record.unsupportedCapability ? "No approved backend/profile supports this capability. No fallback was silently added." : record.synthesisSkipped ? "Selected synthesis was skipped. No replacement agent was used." : record.mode === "quick" ? "Parent response ready. Peer review was not requested. Sources remain unverified." : "Available stages finished. No external source verification occurred.";
+  $("resultStatus").textContent = record.permissionRequired ? "Permission required" : record.extensionBlocked?"Extension blocked":record.unsupportedCapability ? "Unsupported" : record.status === "partial" ? "Partial result" : record.mode === "quick" ? record.delegationRequested ? "Quick + helpers" : "Unreviewed" : record.scenario === "disagreement" ? "Open question" : "Review complete";
   $("resultStatus").classList.toggle("warning",record.mode === "quick" || record.status !== "completed" || record.scenario === "disagreement");
   renderAnswer(); renderTree();
   $("detailsSummary").textContent = "Drafts, findings & agent hierarchy";
-  $("reviewDetails").open = Boolean(record.delegationRequested || record.synthesisSkipped || ["automatic","permission","unsupported"].includes(record.scenario));
+  $("reviewDetails").open = Boolean(record.delegationRequested || record.synthesisSkipped || ["automatic","permission","unsupported","extensions"].includes(record.scenario));
   $("completionText").textContent = `${record.apiInvocations} API invocations · ${record.agentJobs} native jobs · ${record.permissionRequired ? "Nothing sent" : record.mode === "quick" ? "No peer review" : record.status === "partial" ? "Partial workflow" : "Checks completed, correctness not guaranteed"}`;
+  if (record.extensionSnapshot) $("completionText").textContent = `${record.apiInvocations} API invocations · ${record.toolOperations.filter(operation=>operation.registrationId&&operation.status==="completed").length} MCP operations · ${record.instructionReads.filter(read=>read.status==="loaded").length} skill loads · ${record.permissionRequired?"Permission required":record.status==="partial"?"Extension blocked":record.mode==="quick"?"No peer review":"Support remains unverified"}`;
   $("completion").hidden = false;
   invalidate(); updateConfig();
 }
@@ -465,12 +532,14 @@ function send(event) {
   if (!enabled.length || (mode === "team" && enabled.length < 2)) { updateConfig(); return; }
   const selectedId = $("synthesizer").value, chosen = mode === "quick" ? enabled.filter(agent => agent.id === selectedId) : enabled;
   invalidate(); running = true; const run = generation;
-  record = {version:"interactive-design-3",status:"running",mode,example:selected,scenario:$("scenario").value,message:text,synthesizerId:selectedId,maxAttempts:effectiveCap(),attempts:0,apiInvocations:0,agentJobs:0,maxToolOperations:64,maxNativeJobs:4,toolOperations:[],requestedCapabilities:requestedCapabilities(),autoToolsAllowed:toolPreferences[mode],reviewCount:0,helpersAllowed:helperPreferences[mode],maxDepth:Number($("maxDepth").value),maxHelpers:6,maxChildrenPerAgent:2,maxTotalAgents:12,peakConcurrency:0,peakPerProvider:0,calls:[],sourceStatus:"not_retrieved_or_verified",providerRequestsMade:0,agents:chosen.map(agent => ({...agent,parentId:null,depth:0,task:"Independent initial draft",status:"Queued",draft:null,review:null}))};
+  record = {version:"interactive-design-4",status:"running",mode,example:selected,scenario:$("scenario").value,message:text,synthesizerId:selectedId,maxAttempts:effectiveCap(),attempts:0,apiInvocations:0,agentJobs:0,maxToolOperations:64,maxNativeJobs:4,toolOperations:[],requestedCapabilities:requestedCapabilities(),autoToolsAllowed:toolPreferences[mode],reviewCount:0,helpersAllowed:helperPreferences[mode],maxDepth:Number($("maxDepth").value),maxHelpers:6,maxChildrenPerAgent:2,maxTotalAgents:12,peakConcurrency:0,peakPerProvider:0,calls:[],sourceStatus:"not_retrieved_or_verified",providerRequestsMade:0,agents:chosen.map(agent => ({...agent,parentId:null,depth:0,task:"Independent initial draft",status:"Queued",draft:null,review:null}))};
+  record.instructionReads=[];
+  if (record.scenario==="extensions") loadSharedInstructions();
   record.delegationRequested = record.scenario === "delegation" && record.helpersAllowed;
   if (record.scenario === "delegation" && !record.helpersAllowed) record.notice = "The subagent scenario was skipped because helper permission is off. Only the base workflow ran; no helper call was requested or dispatched.";
   if (record.scenario === "partial" && mode === "team") record.failedAgentId = chosen[chosen.length - 1].id;
   $("empty").hidden = true; $("conversation").hidden = false; $("answer").hidden = true; $("completion").hidden = true;
-  $("reviewDetails").hidden = false; $("reviewDetails").open = record.delegationRequested || record.scenario === "automatic";
+  $("reviewDetails").hidden = false; $("reviewDetails").open = record.delegationRequested || record.scenario === "automatic" || record.scenario === "extensions";
   $("detailsSummary").textContent = "Agent activity & hierarchy"; $("userMessage").textContent = text;
   $("mockNote").textContent = `Simulating “${labels[selected]}”; the answer uses this preset example.`;
   $("history").firstElementChild.textContent = text.length > 44 ? text.slice(0,44) + "…" : text;
@@ -497,6 +566,7 @@ $("team").addEventListener("click",() => { mode = "team"; updateConfig(); });
 $("helpers").addEventListener("change",() => { helperPreferences[mode] = $("helpers").checked; updateConfig(); });
 $("autoTools").addEventListener("change",() => { toolPreferences[mode] = $("autoTools").checked; updateConfig(); });
 $("toolRequest").addEventListener("change",updateConfig);
+["sharedSkill","sharedPlugin","sharedMcp","extensionGrant"].forEach(id=>$(id).addEventListener("change",updateConfig));
 $("scenario").addEventListener("change",updateConfig);
 $("synthesizer").addEventListener("change",updateConfig);
 $("teamPreset").addEventListener("change",() => setPreset($("teamPreset").value));
@@ -515,7 +585,7 @@ $("history").addEventListener("click",() => { if (!$("conversation").hidden) $("
 [$("closeDialog"),$("doneDialog")].forEach(button => button.addEventListener("click",() => $("connectionDialog").close()));
 $("export").addEventListener("click",() => {
   if (!record) return;
-  const exported = {...record,simulationNotice:"Design simulation only. No model, API tool, SDK/CLI, MCP, local tool, or source verification ran.",answer:record.status === "canceled" || record.synthesisSkipped || record.permissionRequired || record.unsupportedCapability ? null : $("answer").innerText};
+  const exported = {...record,simulationNotice:"Design simulation only. No model, API tool, SDK/CLI, MCP, local tool, extension installation, or source verification ran.",answer:record.status === "canceled" || record.synthesisSkipped || record.permissionRequired || record.unsupportedCapability || record.extensionBlocked ? null : $("answer").innerText};
   const url = URL.createObjectURL(new Blob([JSON.stringify(exported,null,2)],{type:"application/json"}));
   const link = document.createElement("a"); link.href = url; link.download = "proofestra-demo-record.json"; link.click();
   setTimeout(() => URL.revokeObjectURL(url),1000);

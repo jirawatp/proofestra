@@ -11,7 +11,9 @@ info:
     govern admission. Observable harness invocations are not opaque internal model/tool counts. No universal compatibility,
     guaranteed cancellation, billing or accuracy claims. Confirmed design scope includes provider API tools, local
     agent applications, SDKs/CLIs, MCP tools and hosted agent services. Compatibility/implementation are staged
-    per adapter; none is implied live by inclusion in scope.
+    per adapter; none is implied live by inclusion in scope. Shared skills/plugins/custom MCP registrations project
+    into eligible profiles through one harness registry. Metadata-only discovery contains no secrets or installation
+    authority; frozen versions/digests, grants and root-branch isolation remain enforced.
   license: {name: Apache License 2.0, identifier: Apache-2.0}
 servers:
 - {url: 'http://127.0.0.1:3000/api/v1'}
@@ -22,6 +24,7 @@ tags:
 - {name: Providers}
 - {name: Conversations}
 - {name: Runs}
+- {name: Extensions}
 paths:
   /session:
     get:
@@ -192,7 +195,9 @@ paths:
         prompt/run/key/event. Reject unique-ID, membership, readiness, control, scope, context and finite deployment-policy
         violations before dispatch. Repeated provider/profile roots and larger teams within deployment policy are
         valid. All-peers base plan is not dynamic internal work; no blind global 32 internal-call promise. No new
-        destinations/grants or silent synthesizer replacement. Returns queued, not a completed answer.
+        destinations/grants or silent synthesizer replacement. Returns queued, not a completed answer. Freeze selected
+        extension versions/digests and branch/resource scope; reject unavailable or out-of-scope selections before
+        dispatch.
       security:
       - cookieAuth: []
         csrfToken: []
@@ -412,13 +417,52 @@ paths:
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         default: {$ref: '#/components/responses/Error'}
+  /extensions:
+    get:
+      tags: [Extensions]
+      operationId: listExtensions
+      summary: Page shared skill, plugin and custom MCP registration metadata
+      description: Read-only authorized cached catalog. Registration remains operator configuration; no install/admin
+        endpoint or model permission to register/enable/grant. No package fetch, MCP discovery/connection, credential
+        access, launch, script execution or inference. Connected profiles reuse one harness registration through
+        compatible projections.
+      parameters:
+      - {$ref: '#/components/parameters/Cursor'}
+      - {$ref: '#/components/parameters/PageLimit'}
+      - {$ref: '#/components/parameters/CatalogQuery'}
+      - {$ref: '#/components/parameters/ExtensionFilter'}
+      - name: kind
+        in: query
+        schema: {$ref: '#/components/schemas/ExtensionKind'}
+      - name: scope
+        in: query
+        schema:
+          type: string
+          enum: [global, workspace]
+      - name: profile_id
+        in: query
+        schema: {$ref: '#/components/schemas/ProfileId'}
+      responses:
+        '200':
+          description: Sanitized metadata only; no live compatibility claim.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ExtensionPage'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
   /capabilities:
     get:
       tags: [Providers]
       operationId: listCapabilities
       summary: Page compatible tool/profile/backend metadata without executing tools
       description: Filter by registered metadata. Compatibility evidence/readiness/auth/grants/egress/observability
-        are separate; no claim of universal tool/model/mode support. Cursors bind catalog version and filters.
+        are separate; no claim of universal tool/model/mode support. Cursors bind catalog version and filters. extension_id
+        filters shared registration tools without duplicating identity per provider. Optional server-derived provenance
+        identifies the pinned contribution; catalog reads never load packages, read secrets or discover MCP tools.
       parameters:
       - {$ref: '#/components/parameters/Cursor'}
       - {$ref: '#/components/parameters/PageLimit'}
@@ -427,6 +471,7 @@ paths:
       - {$ref: '#/components/parameters/ProfileFilter'}
       - {$ref: '#/components/parameters/BackendFilter'}
       - {$ref: '#/components/parameters/BackendKindFilter'}
+      - {$ref: '#/components/parameters/ExtensionFilter'}
       responses:
         '200':
           description: Versioned paginated capability registry.
@@ -601,6 +646,11 @@ components:
       in: query
       required: false
       schema: {$ref: '#/components/schemas/BackendKind'}
+    ExtensionFilter:
+      name: extension_id
+      in: query
+      required: false
+      schema: {$ref: '#/components/schemas/ExtensionId'}
   responses:
     Error:
       description: 'Standard safe error envelope. 400 malformed request/cursor/event ID;
@@ -831,6 +881,11 @@ components:
         tool_policy: {$ref: '#/components/schemas/ToolPolicyInput'}
         expected_catalog_version: {type: string, minLength: 1, maxLength: 100}
         expected_runtime_policy_version: {type: string, minLength: 1, maxLength: 100}
+        extension_refs:
+          type: array
+          items: {$ref: '#/components/schemas/ExtensionVersionRef'}
+          minItems: 0
+          uniqueItems: true
       description: Quick requires one root and no synthesizer; Team at least two roots and a root synthesizer_agent_id.
         Repeated providers/profiles are valid; unique IDs/membership/profile/control/grant checks are application
         invariants. Provider IDs/catalog are extensible. Freeze profiles, backend/capability/policy versions, context
@@ -839,7 +894,12 @@ components:
         6 may be raised only within advertised deployment ceilings. Client input cannot contain raw model IDs, credentials,
         lineage, new grants or arbitrary adapter definitions. Live submissions bind the displayed expected_catalog_version
         and expected_runtime_policy_version; changed registry/policy returns 409 before dispatch. Recheck current
-        grant validity/revocation before every action, without broadening frozen scope.
+        grant validity/revocation before every action, without broadening frozen scope. Optional extension_refs
+        selects exact registered authorized versions, not installation or new grants. Omission uses the existing
+        authorized selection, empty when none. Freeze provenance/projections; the expected catalog version covers
+        extension bindings. Models cannot expand scope. Unrelated registry changes do not cancel unaffected pinned
+        work. Select one immutable version per registration; duplicate IDs with differing versions/digests are rejected
+        by application validation.
       allOf:
       - if:
           properties:
@@ -1148,7 +1208,8 @@ components:
       required: [id, conversation_id, user_message_id, mode, execution_mode, status, root_agent_ids, agents, synthesizer_agent_id,
         delegation, context, prompt_version, limits, base_planned_calls, steps, spawn_decisions, final_answer, presentation,
         limitations, usage, created_at, finished_at, last_event_sequence, review_topology, runtime_policy_version,
-        catalog_version, tool_policy, tool_executions, tool_executions_next_cursor, external_work_status]
+        catalog_version, tool_policy, tool_executions, tool_executions_next_cursor, external_work_status, extension_refs,
+        extension_activations]
       properties:
         id: {type: string, format: uuid}
         conversation_id: {type: string, format: uuid}
@@ -1221,6 +1282,14 @@ components:
         external_work_status:
           type: string
           enum: [none, settled, unknown, orphaned]
+        extension_refs:
+          type: array
+          items: {$ref: '#/components/schemas/ExtensionProvenance'}
+          minItems: 0
+        extension_activations:
+          type: array
+          items: {$ref: '#/components/schemas/ExtensionActivation'}
+          minItems: 0
       description: Snapshot of frozen identities/profiles/backends/context/policy/grants plus effective personal/deployment
         limits. Agent/step/spawn counts obey dynamic runtime policy, not fixed product ceilings. base_planned_calls
         counts all_peers root harness work only; usage distinguishes observed harness/tool/job counts from nullable
@@ -1229,7 +1298,11 @@ components:
         correctness. Accepted-child failure/missing Team work/fallback is partial; zero successful root drafts fails.
         No silent synthesizer swap. Terminal workflow outcome is immutable; external unknown/orphaned status and
         usage may be reconciled separately without auto-resume. Keys/private reasoning/raw vendor debug payloads
-        never appear.
+        never appear. extension_refs freezes selected registration provenance; extension_activations records concise
+        skill/resource loader decisions. Disable/revoke/remove/supersede blocks affected pending loads/calls unless
+        the old version is explicitly retained enabled and authorized for this pinned run. Stop affected running
+        work best-effort, preserving unknown external status and no automatic replay; unrelated updates do not alter
+        frozen content.
       examples:
       - id: 11111111-1111-4111-8111-111111111111
         conversation_id: 33333333-3333-4333-8333-333333333333
@@ -1384,6 +1457,8 @@ components:
         tool_executions: []
         tool_executions_next_cursor: null
         external_work_status: none
+        extension_refs: []
+        extension_activations: []
     TerminalRunSnapshot:
       allOf:
       - {$ref: '#/components/schemas/RunSnapshot'}
@@ -1400,7 +1475,7 @@ components:
         type:
           type: string
           enum: [run.started, agent.created, agent.updated, step.updated, spawn.decided, run.finished, route.decided,
-            tool.updated, tool.approval_decided, external.reconciled]
+            tool.updated, tool.approval_decided, external.reconciled, extension.activated]
         at: {type: string, format: date-time}
         data: {type: object}
       allOf:
@@ -1575,10 +1650,40 @@ components:
                 notice: {type: string, maxLength: 2000}
               description: Read-only external status/metering reconciliation, not auto-resume. Exactly one target
                 ID is nonnull; validate it belongs to this run.
+      - if:
+          properties:
+            type: {const: extension.activated}
+          required: [type]
+        then:
+          properties:
+            data: {$ref: '#/components/schemas/ExtensionActivation'}
       description: Run-scoped durable numeric sequence. Lineage, routes, exact-action approvals and bounded tool
         results are typed events. Scope counters to observable harness/operations/jobs; never infer hidden internal
         work. Terminal state stays immutable; separately labeled external reconciliation can append records without
-        restarting work.
+        restarting work. extension.activated is an internal loader decision, not package content, permission or
+        an install command.
+      examples:
+      - run_id: 11111111-1111-4111-8111-111111111111
+        sequence: 5
+        type: extension.activated
+        at: '2026-10-17T02:00:00Z'
+        data:
+          activation_id: 99999999-9999-4999-8999-999999999999
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          root_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          extension:
+            extension_id: careful-review
+            version: 1.0.0
+            digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+            namespace: ext.careful-review
+            scope: global
+            workspace_id: null
+          status: applied
+          content_resource_ids: [SKILL.md]
+          context_placement: bounded_task_guidance
+          notice: Fictional loader record. Instructions add no tool grant; repeated activation within this agent
+            context reuses this record.
+          created_at: '2026-10-17T02:00:00Z'
     ConversationExport:
       type: object
       additionalProperties: false
@@ -2041,8 +2146,25 @@ components:
         execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
         arguments_schema: {type: object, description: 'Validated tool JSON Schema supplied by the registered manifest;
             data, never executable client code.'}
-      description: Versioned tool/profile/backend metadata; not universal support for a provider or model. Catalog
-        reads never call tools or verify credentials.
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
+      description: 'Versioned tool/profile/backend metadata; not universal support for a provider or model. Catalog
+        reads never call tools or verify credentials. Extension contributions include server-derived immutable version/digest/namespace/scope
+        provenance. Recheck enablement, revocation and current grants before dispatch; changed bound content/scope
+        invalidates pending approval. Clients/models cannot override provenance. Extension logical IDs equal ext.<extension_id>.<local_id>;
+        deterministic provider wire aliases are collision-checked within naming limits. Shared registration never
+        shares root drafts or private mutable tool sessions/handles: isolate per run/root branch or mark ineligible
+        during drafting.'
+      allOf:
+      - if:
+          anyOf:
+          - properties:
+              capability_id: {type: string, pattern: ^ext\.}
+            required: [capability_id]
+          - properties:
+              tool_id: {type: string, pattern: ^ext\.}
+            required: [tool_id]
+        then:
+          required: [extension]
     CapabilityPage:
       type: object
       additionalProperties: false
@@ -2057,6 +2179,126 @@ components:
         next_cursor:
           type: [string, 'null']
           maxLength: 2048
+      examples:
+      - catalog_version: mock-extensions-v1
+        items:
+        - capability_id: ext.research-box.search
+          tool_id: ext.research-box.search
+          provider: openai
+          profile_id: mock-openai-functions
+          backend: {backend_id: mock-provider-api, kind: provider_api, version: mock-v1, readiness: configured}
+          manifest_version: mock-v1
+          tool_version: 1.0.0
+          description: Fictional shared research tool; no installed server or live provider compatibility implied.
+          compatibility:
+            status: tested
+            checked_at: '2026-10-17T02:00:00Z'
+            supported_modes: [mock]
+            source_urls: []
+            notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+          readiness: configured
+          authentication:
+            methods: []
+            status: not_required
+            required_scopes: []
+          permissions:
+            required_scopes: [research.public.read]
+            side_effect_class: read_only
+            grant_scopes: [task, session, action]
+            approval_available: true
+          egress:
+            execution_location: our_host
+            destinations: ['https://example.com']
+            sends_context: false
+            notes: Fixture public query only; no sibling draft or private broker handle shared.
+          observability:
+            internal_usage_visibility: complete
+            internal_model_counts_available: true
+            internal_tool_counts_available: true
+            cancellation: local_only
+            notes: Deterministic fixture only.
+          execution_controls:
+            strict_bounds_supported: true
+            supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+            max_internal_model_invocations: 1
+            max_internal_tool_operations: 1
+            max_job_seconds: 120
+            job_deadline_enforced: true
+            tool_permission_gate: before_each
+            context_isolation: verified
+            notes: Illustrative deterministic mock control mapping, not a tested live backend.
+          arguments_schema:
+            type: object
+            additionalProperties: false
+            required: [query]
+            properties:
+              query: {type: string, minLength: 1, maxLength: 1000}
+          extension:
+            extension_id: research-box
+            version: 1.0.0
+            digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+            namespace: ext.research-box
+            scope: workspace
+            workspace_id: personal
+        - capability_id: ext.research-box.search
+          tool_id: ext.research-box.search
+          provider: anthropic
+          profile_id: mock-anthropic-bridge
+          backend: {backend_id: mock-provider-api, kind: provider_api, version: mock-v1, readiness: configured}
+          manifest_version: mock-v1
+          tool_version: 1.0.0
+          description: Fictional shared research tool; no installed server or live provider compatibility implied.
+          compatibility:
+            status: tested
+            checked_at: '2026-10-17T02:00:00Z'
+            supported_modes: [mock]
+            source_urls: []
+            notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+          readiness: configured
+          authentication:
+            methods: []
+            status: not_required
+            required_scopes: []
+          permissions:
+            required_scopes: [research.public.read]
+            side_effect_class: read_only
+            grant_scopes: [task, session, action]
+            approval_available: true
+          egress:
+            execution_location: our_host
+            destinations: ['https://example.com']
+            sends_context: false
+            notes: Fixture public query only; no sibling draft or private broker handle shared.
+          observability:
+            internal_usage_visibility: complete
+            internal_model_counts_available: true
+            internal_tool_counts_available: true
+            cancellation: local_only
+            notes: Deterministic fixture only.
+          execution_controls:
+            strict_bounds_supported: true
+            supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+            max_internal_model_invocations: 1
+            max_internal_tool_operations: 1
+            max_job_seconds: 120
+            job_deadline_enforced: true
+            tool_permission_gate: before_each
+            context_isolation: verified
+            notes: Illustrative deterministic mock control mapping, not a tested live backend.
+          arguments_schema:
+            type: object
+            additionalProperties: false
+            required: [query]
+            properties:
+              query: {type: string, minLength: 1, maxLength: 1000}
+          extension:
+            extension_id: research-box
+            version: 1.0.0
+            digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+            namespace: ext.research-box
+            scope: workspace
+            workspace_id: personal
+        next_cursor: null
     ToolPolicyInput:
       type: object
       additionalProperties: false
@@ -2217,7 +2459,11 @@ components:
             identity fields. Never execute before policy resolution.'}
       description: Internal model request, not browser authentication or permission. Coordinator supplies caller/run/step/parent
         invocation/tool-call IDs; optional specific tool does not bypass the frozen capability/profile/backend/grant
-        scope.
+        scope. Extension/version/namespace/credentials/install directives are not request fields; derive provenance
+        from registry capability. Skill instructions are not tools. Native MCP and broker projections use the same
+        routing/grants/budgets/idempotency. The coordinator derives run/root-branch identity and binds every resource/session
+        handle to it. Model-supplied branch IDs/handles are data, never authority to cross branches, workspace grants
+        or credentials.
     RouteDecision:
       type: object
       additionalProperties: false
@@ -2261,12 +2507,26 @@ components:
         reason_code: {type: string, maxLength: 100, minLength: 1}
         notice: {type: string, maxLength: 2000}
         created_at: {type: string, format: date-time}
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
       description: Durable exact routing decision under frozen policy. Direct chooses a compatible permitted native
         route; delegated chooses an already approved helper profile/backend. No eligible route is unavailable/blocked,
         never a new destination or changed root synthesizer. Awaiting approval cannot repair an incompatible/out-of-scope
         route. Match request identity/digest for replay; distinct decisions may record approval-driven transitions
         of one execution. Delegated routes require delegation.enabled; auto tool mode cannot override helpers-off
-        or create a hidden managed child.
+        or create a hidden managed child. Extension contributions include server-derived immutable version/digest/namespace/scope
+        provenance. Recheck enablement, revocation and current grants before dispatch; changed bound content/scope
+        invalidates pending approval. Clients/models cannot override provenance.
+      allOf:
+      - if:
+          anyOf:
+          - properties:
+              capability_id: {type: string, pattern: ^ext\.}
+            required: [capability_id]
+          - properties:
+              selected_tool_id: {type: string, pattern: ^ext\.}
+            required: [selected_tool_id]
+        then:
+          required: [extension]
     PendingToolApproval:
       type: object
       additionalProperties: false
@@ -2282,9 +2542,13 @@ components:
           uniqueItems: true
         created_at: {type: string, format: date-time}
         expires_at: {type: string, format: date-time}
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
       description: One pending exact action bound server-side to run, execution, caller, tool/profile/backend, task
         and policy version. Preview contains all nonsecret normalized arguments and credential-scope references,
-        never secret values. Changed action requires another pending record; no broad grant.
+        never secret values. Changed action requires another pending record; no broad grant. Extension contributions
+        include server-derived immutable version/digest/namespace/scope provenance. Recheck enablement, revocation
+        and current grants before dispatch; changed bound content/scope invalidates pending approval. Clients/models
+        cannot override provenance.
     ToolApprovalInput:
       type: object
       additionalProperties: false
@@ -2391,12 +2655,16 @@ components:
         finished_at:
           type: [string, 'null']
           format: date-time
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
       description: Bounded normalized action/result ledger, not unrestricted vendor traces. Every execution has
         stable sequence, caller/invocation identity and exact digest; duplicate callbacks cannot execute twice.
         Grants/routes and pending approval remain bound to the exact action. Unknown/orphaned external status is
         not fake cancellation. Results are inert content. Denials alone need not make a run partial; an unfinished
         required action/stage does. Later external status/metering reconciliation can update this separate record
-        after run terminal state, without changing workflow outcome or launching work.
+        after run terminal state, without changing workflow outcome or launching work. Extension contributions include
+        server-derived immutable version/digest/namespace/scope provenance. Recheck enablement, revocation and current
+        grants before dispatch; changed bound content/scope invalidates pending approval. Clients/models cannot
+        override provenance.
       examples:
       - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
         sequence: 1
@@ -2697,6 +2965,108 @@ components:
         created_at: '2026-10-17T02:00:00Z'
         updated_at: '2026-10-17T02:00:01Z'
         finished_at: '2026-10-17T02:00:01Z'
+      - tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+        sequence: 1
+        run_id: 11111111-1111-4111-8111-111111111111
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+        parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+        provider_tool_call_id: call-search-1
+        request:
+          capability_id: ext.research-box.search
+          arguments: {query: Source for the supplied public claim}
+          tool_id: ext.research-box.search
+        argument_digest: sha256:8d65bc5c613a55376a5e4353e4eef3ce41f8db15be41108fb937fa6c548ff4ea
+        arguments_preview: 'query: Source for the supplied public claim'
+        route_decisions:
+        - route_decision_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee2
+          tool_execution_id: eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee1
+          run_id: 11111111-1111-4111-8111-111111111111
+          agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+          step_id: cccccccc-cccc-4ccc-8ccc-ccccccccccc1
+          parent_invocation_id: dddddddd-dddd-4ddd-8ddd-ddddddddddd1
+          provider_tool_call_id: call-search-1
+          capability_id: ext.research-box.search
+          route: blocked
+          selected_tool_id: ext.research-box.search
+          selected_profile_id: mock-anthropic-bridge
+          selected_backend_id: mock-provider-api
+          delegated_agent_id: null
+          grant_refs: []
+          policy_version: personal-v2
+          catalog_version: catalog-v2
+          reason_code: missing_grant
+          notice: 'Shared registration with compatible bridge but missing task grant: no MCP call, helper or native
+            job.'
+          created_at: '2026-10-17T02:00:00Z'
+          extension:
+            extension_id: research-box
+            version: 1.0.0
+            digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+            namespace: ext.research-box
+            scope: workspace
+            workspace_id: personal
+        approval: null
+        status: blocked
+        execution_backend_id: mock-provider-api
+        native_job_id: null
+        external_status: not_started
+        bounds_mode: strict
+        execution_controls:
+          strict_bounds_supported: true
+          supported_controls: [harness_invocations, tool_operations, deadline, context_isolation, delegation_disabled]
+          max_internal_model_invocations: 1
+          max_internal_tool_operations: 1
+          max_job_seconds: 120
+          job_deadline_enforced: true
+          tool_permission_gate: before_each
+          context_isolation: verified
+          notes: Illustrative deterministic mock control mapping, not a tested live backend.
+        deadline_at: '2026-10-17T02:00:45Z'
+        result: null
+        sources: []
+        usage:
+          harness_invocations: 0
+          tool_operations_observed: 0
+          native_jobs_started: 0
+          internal_usage_visibility: complete
+          internal_model_invocations: 0
+          internal_tool_operations: 0
+          input_tokens: null
+          output_tokens: null
+          reserved_output_tokens: 0
+          token_scope: simulated
+          accounting: simulated
+          estimated_cost_usd: 0
+          cost_scope: simulated
+          pricing_version: null
+        limitations: [Illustrative shared broker blocked by missing grant; enabling a registration grants no tool
+            permission.]
+        created_at: '2026-10-17T02:00:00Z'
+        updated_at: '2026-10-17T02:00:01Z'
+        finished_at: '2026-10-17T02:00:01Z'
+        extension:
+          extension_id: research-box
+          version: 1.0.0
+          digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+          namespace: ext.research-box
+          scope: workspace
+          workspace_id: personal
+      allOf:
+      - if:
+          properties:
+            request:
+              type: object
+              anyOf:
+              - properties:
+                  capability_id: {type: string, pattern: ^ext\.}
+                required: [capability_id]
+              - properties:
+                  tool_id: {type: string, pattern: ^ext\.}
+                required: [tool_id]
+          required: [request]
+        then:
+          required: [extension]
     ToolExecutionPage:
       type: object
       additionalProperties: false
@@ -2710,3 +3080,445 @@ components:
         next_cursor:
           type: [string, 'null']
           maxLength: 2048
+    ExtensionId:
+      type: string
+      minLength: 1
+      maxLength: 80
+      pattern: ^[a-z][a-z0-9_-]*$
+      description: Stable configured registration ID, unique in the harness registry; not MCP serverInfo.name, display
+        name or provider wire alias.
+    ExtensionKind:
+      type: string
+      enum: [skill, plugin, mcp_server]
+    ExtensionVersionRef:
+      type: object
+      additionalProperties: false
+      required: [extension_id, version, digest]
+      properties:
+        extension_id: {$ref: '#/components/schemas/ExtensionId'}
+        version: {type: string, minLength: 1, maxLength: 200}
+        digest: {$ref: '#/components/schemas/ArgumentDigest'}
+      description: Exact immutable registered content selection, not installation or permission. Recheck scope,
+        enablement, authorization and digest before loading/dispatch; models cannot select a different version.
+    ExtensionProvenance:
+      type: object
+      additionalProperties: false
+      required: [extension_id, version, digest, namespace, scope, workspace_id]
+      properties:
+        extension_id: {$ref: '#/components/schemas/ExtensionId'}
+        version: {type: string, minLength: 1, maxLength: 200}
+        digest: {$ref: '#/components/schemas/ArgumentDigest'}
+        namespace: {type: string, minLength: 5, maxLength: 84, pattern: '^ext\.[a-z][a-z0-9_-]*$'}
+        scope:
+          type: string
+          enum: [global, workspace]
+        workspace_id:
+          oneOf:
+          - {type: string, minLength: 1, maxLength: 100}
+          - {type: 'null'}
+      description: Server-derived frozen registration provenance. Namespace equals ext.<extension_id>. Global scope
+        requires null workspace_id; workspace scope requires the authorized configured workspace. Logical capability/tool
+        IDs are ext.<extension_id>.<local_id>. Provider wire aliases obey naming limits and deterministic collision
+        checks, never defining identity. These relationships require application validation.
+      allOf:
+      - if:
+          properties:
+            scope: {const: global}
+          required: [scope]
+        then:
+          properties:
+            workspace_id: {type: 'null'}
+        else:
+          properties:
+            workspace_id: {type: string, minLength: 1, maxLength: 100}
+    ExtensionCompatibility:
+      type: object
+      additionalProperties: false
+      required: [provider, profile_id, execution_backend_id, exposure, compatibility, readiness, state_isolation,
+        required_scopes, notice]
+      properties:
+        provider: {$ref: '#/components/schemas/Provider'}
+        profile_id: {$ref: '#/components/schemas/ProfileId'}
+        execution_backend_id: {$ref: '#/components/schemas/BackendId'}
+        exposure:
+          type: string
+          enum: [instructions, direct_function, native_mcp, harness_bridge, delegated, unsupported]
+        compatibility: {$ref: '#/components/schemas/CompatibilityEvidence'}
+        readiness:
+          type: string
+          enum: [configured, missing_auth, disabled, unsupported, unverified]
+        state_isolation:
+          type: string
+          enum: [branch_scoped, read_only_shared, unsupported, unknown]
+        required_scopes:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 200}
+          minItems: 0
+        notice: {type: string, maxLength: 2000}
+      description: Per-profile projection of a shared registration, not grants or universal native-format compatibility.
+        Direct/native/bridge reuse logical IDs and policy. Delegated requires an allowed helper and delegation.enabled.
+        Private mutable state is isolated per run/root branch during drafting, otherwise the route is ineligible.
+        Common preexisting read-only sources may be shared.
+    ExtensionMetadata:
+      type: object
+      additionalProperties: false
+      required: [extension, kind, display_name, origin, trust, status, discovery_active, capability_ids, tool_ids,
+        profile_compatibility]
+      properties:
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
+        kind: {$ref: '#/components/schemas/ExtensionKind'}
+        display_name: {type: string, minLength: 1, maxLength: 200}
+        origin:
+          type: object
+          additionalProperties: false
+          required: [kind, source_label, license]
+          properties:
+            kind:
+              type: string
+              enum: [local_package, registry, remote_source, plugin_bundle]
+            source_label: {type: string, minLength: 1, maxLength: 500}
+            license:
+              oneOf:
+              - {type: string, minLength: 1, maxLength: 200}
+              - {type: 'null'}
+          description: Sanitized source identity, never a credential-bearing URL, local secret path, package body
+            or launch configuration.
+        trust:
+          type: object
+          additionalProperties: false
+          required: [status, notes]
+          properties:
+            status:
+              type: string
+              enum: [trusted, untrusted, pending_review, revoked]
+            notes: {type: string, maxLength: 1000}
+          description: Trust classification is not execution permission. Content/descriptions remain untrusted input;
+            revoked content blocks pending work.
+        status:
+          type: string
+          enum: [registered, enabled, disabled, quarantined]
+        discovery_active: {type: boolean}
+        capability_ids:
+          type: array
+          items: {$ref: '#/components/schemas/CapabilityId'}
+          minItems: 0
+          maxItems: 100
+          description: Bounded preview, not a complete contribution/profile inventory. Page /capabilities?extension_id=...
+            with provider/profile/backend filters for callable contributions and their compatibility.
+        tool_ids:
+          type: array
+          items: {$ref: '#/components/schemas/ToolId'}
+          minItems: 0
+          maxItems: 100
+          description: Bounded preview, not a complete contribution/profile inventory. Page /capabilities?extension_id=...
+            with provider/profile/backend filters for callable contributions and their compatibility.
+        profile_compatibility:
+          type: array
+          items: {$ref: '#/components/schemas/ExtensionCompatibility'}
+          minItems: 0
+          maxItems: 100
+          description: Bounded preview, not a complete contribution/profile inventory. Page /capabilities?extension_id=...
+            with provider/profile/backend filters for callable contributions and their compatibility.
+        skill_metadata:
+          type: object
+          additionalProperties: false
+          required: [entrypoint, instruction_digest, declared_allowed_tools]
+          properties:
+            entrypoint: {type: string, minLength: 1, maxLength: 400, pattern: '^(?!/)(?!.*(?:^|/)\.\.(?:/|$))[A-Za-z0-9][A-Za-z0-9._/-]*$'}
+            instruction_digest: {$ref: '#/components/schemas/ArgumentDigest'}
+            declared_allowed_tools:
+              type: array
+              items: {type: string, minLength: 1, maxLength: 160}
+              minItems: 0
+          description: Metadata only. Bounded internal loader supports instruction injection without model filesystem
+            access. Experimental allowed-tools metadata is advisory, not permission. Scripts require separate permitted
+            execution; reading instructions does not run them.
+        plugin_metadata:
+          type: object
+          additionalProperties: false
+          required: [manifest_format, component_kinds]
+          properties:
+            manifest_format: {type: string, minLength: 1, maxLength: 100}
+            component_kinds:
+              type: array
+              items: {$ref: '#/components/schemas/ExtensionKind'}
+              minItems: 0
+              uniqueItems: true
+          description: Harness bundle/import format, not every vendor plugin/hook/UI/auth format. Metadata reads/import
+            validation do not execute hooks/scripts or fetch arbitrary dependencies.
+        mcp_metadata:
+          type: object
+          additionalProperties: false
+          required: [broker_registration_id, transport, declared_protocol_version, negotiated_protocol_version,
+            transport_adapter_version, endpoint_origin, authentication]
+          properties:
+            broker_registration_id: {$ref: '#/components/schemas/ExtensionId'}
+            transport:
+              type: string
+              enum: [stdio, streamable_http, legacy_sse]
+            declared_protocol_version: {type: string, minLength: 1, maxLength: 100}
+            negotiated_protocol_version:
+              oneOf:
+              - {type: string, minLength: 1, maxLength: 100}
+              - {type: 'null'}
+            transport_adapter_version: {type: string, minLength: 1, maxLength: 200}
+            endpoint_origin:
+              type: [string, 'null']
+              maxLength: 500
+              pattern: ^https?://(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:]+\])(?::[0-9]{1,5})?$
+            authentication: {$ref: '#/components/schemas/AuthRequirements'}
+          description: Cached safe broker metadata; no raw remote URL/path/query/userinfo, command, environment,
+            credential reference or secret. Private config holds full scopes and secret-store references. stdio
+            has null endpoint_origin. Pin a tested protocol/transport/backend; legacy SSE needs an explicit tested
+            adapter. Do not assume universal initialize sessions. Reading metadata never connects, discovers, launches
+            or authenticates.
+          allOf:
+          - if:
+              properties:
+                transport: {const: stdio}
+              required: [transport]
+            then:
+              properties:
+                endpoint_origin: {type: 'null'}
+            else:
+              properties:
+                endpoint_origin: {type: string}
+      description: One shared harness registration, projected to eligible connected profiles rather than copied
+        native installations. Only matching kind metadata is present. One discovery-active version per registration/scope;
+        pinned old content may remain enabled only when explicitly retained and authorized. No package bodies/assets
+        or sensitive settings. The capability/tool ID arrays describe callable tools; skill instructions and MCP
+        resources/prompts are not silently treated as calls. Unsupported contributions remain unavailable until
+        represented by a compatible adapter. Contribution and profile arrays are bounded previews; never dump an
+        unbounded plugin catalog into one response or model context.
+      allOf:
+      - if:
+          properties:
+            kind: {const: skill}
+          required: [kind]
+        then:
+          required: [skill_metadata]
+          not:
+            anyOf:
+            - required: [plugin_metadata]
+            - required: [mcp_metadata]
+      - if:
+          properties:
+            kind: {const: plugin}
+          required: [kind]
+        then:
+          required: [plugin_metadata]
+          not:
+            anyOf:
+            - required: [skill_metadata]
+            - required: [mcp_metadata]
+      - if:
+          properties:
+            kind: {const: mcp_server}
+          required: [kind]
+        then:
+          required: [mcp_metadata]
+          not:
+            anyOf:
+            - required: [skill_metadata]
+            - required: [plugin_metadata]
+      examples:
+      - extension:
+          extension_id: careful-review
+          version: 1.0.0
+          digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+          namespace: ext.careful-review
+          scope: global
+          workspace_id: null
+        kind: skill
+        display_name: Careful review fixture
+        origin: {kind: local_package, source_label: 'Deterministic fixture, not an installed package', license: Apache-2.0}
+        trust: {status: trusted, notes: Fixture classification only; no live trust assessment.}
+        status: enabled
+        discovery_active: true
+        capability_ids: []
+        tool_ids: []
+        profile_compatibility:
+        - provider: openai
+          profile_id: mock-openai-functions
+          execution_backend_id: mock-provider-api
+          exposure: instructions
+          compatibility:
+            status: tested
+            checked_at: '2026-10-17T02:00:00Z'
+            supported_modes: [mock]
+            source_urls: []
+            notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+          readiness: configured
+          state_isolation: branch_scoped
+          required_scopes: [research.public.read]
+          notice: Reuse the same logical registration with separate scoped root state.
+        skill_metadata:
+          entrypoint: SKILL.md
+          instruction_digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
+          declared_allowed_tools: [ext.research-box.search]
+      - extension:
+          extension_id: research-kit
+          version: 1.0.0
+          digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+          namespace: ext.research-kit
+          scope: global
+          workspace_id: null
+        kind: plugin
+        display_name: Research kit fixture
+        origin: {kind: local_package, source_label: 'Deterministic fixture, not an installed package', license: Apache-2.0}
+        trust: {status: trusted, notes: Fixture classification only; no live trust assessment.}
+        status: enabled
+        discovery_active: true
+        capability_ids: []
+        tool_ids: []
+        profile_compatibility:
+        - provider: openai
+          profile_id: mock-openai-functions
+          execution_backend_id: mock-provider-api
+          exposure: instructions
+          compatibility:
+            status: tested
+            checked_at: '2026-10-17T02:00:00Z'
+            supported_modes: [mock]
+            source_urls: []
+            notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+          readiness: configured
+          state_isolation: branch_scoped
+          required_scopes: [research.public.read]
+          notice: Reuse the same logical registration with separate scoped root state.
+        plugin_metadata:
+          manifest_format: proofestra-bundle-v1-draft
+          component_kinds: [skill, mcp_server]
+    ExtensionPage:
+      type: object
+      additionalProperties: false
+      required: [catalog_version, items, next_cursor]
+      properties:
+        catalog_version: {type: string, minLength: 1, maxLength: 100}
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/ExtensionMetadata'}
+          minItems: 0
+          maxItems: 100
+        next_cursor:
+          type: [string, 'null']
+          maxLength: 2048
+      description: Authorized cached metadata only; no package fetch, credential read, inference, tool discovery
+        or launch. Discover current registration bindings, including disabled status when authorized. Pinned historical
+        provenance is retained in runs, not duplicate discovery registrations.
+      examples:
+      - catalog_version: mock-extensions-v1
+        items:
+        - extension:
+            extension_id: research-box
+            version: 1.0.0
+            digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+            namespace: ext.research-box
+            scope: workspace
+            workspace_id: personal
+          kind: mcp_server
+          display_name: Research box fixture
+          origin: {kind: local_package, source_label: 'Deterministic fixture, not an installed package', license: Apache-2.0}
+          trust: {status: trusted, notes: Fixture classification only; no live trust assessment.}
+          status: enabled
+          discovery_active: true
+          capability_ids: [ext.research-box.search]
+          tool_ids: [ext.research-box.search]
+          profile_compatibility:
+          - provider: openai
+            profile_id: mock-openai-functions
+            execution_backend_id: mock-provider-api
+            exposure: direct_function
+            compatibility:
+              status: tested
+              checked_at: '2026-10-17T02:00:00Z'
+              supported_modes: [mock]
+              source_urls: []
+              notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+            readiness: configured
+            state_isolation: branch_scoped
+            required_scopes: [research.public.read]
+            notice: Reuse the same logical registration with separate scoped root state.
+          - provider: anthropic
+            profile_id: mock-anthropic-bridge
+            execution_backend_id: mock-provider-api
+            exposure: harness_bridge
+            compatibility:
+              status: tested
+              checked_at: '2026-10-17T02:00:00Z'
+              supported_modes: [mock]
+              source_urls: []
+              notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+            readiness: configured
+            state_isolation: branch_scoped
+            required_scopes: [research.public.read]
+            notice: Reuse the same logical registration with separate scoped root state.
+          - provider: example-labs
+            profile_id: mock-example-unsupported
+            execution_backend_id: mock-provider-api
+            exposure: unsupported
+            compatibility:
+              status: unsupported
+              checked_at: '2026-10-17T02:00:00Z'
+              supported_modes: []
+              source_urls: []
+              notes: Fictional deterministic contract fixture, not a live adapter or MCP installation test.
+            readiness: unsupported
+            state_isolation: unsupported
+            required_scopes: [research.public.read]
+            notice: No compatible projection; no automatic new destination or helper.
+          mcp_metadata:
+            broker_registration_id: research-box
+            transport: stdio
+            declared_protocol_version: '2026-07-28'
+            negotiated_protocol_version: null
+            transport_adapter_version: mock-v1
+            endpoint_origin: null
+            authentication:
+              methods: []
+              status: not_required
+              required_scopes: []
+        next_cursor: null
+    ExtensionActivation:
+      type: object
+      additionalProperties: false
+      required: [activation_id, agent_id, root_agent_id, extension, status, content_resource_ids, context_placement,
+        notice, created_at]
+      properties:
+        activation_id: {type: string, format: uuid}
+        agent_id: {type: string, format: uuid}
+        root_agent_id: {type: string, format: uuid}
+        extension: {$ref: '#/components/schemas/ExtensionProvenance'}
+        status:
+          type: string
+          enum: [applied, blocked, unsupported, invalidated]
+        content_resource_ids:
+          type: array
+          items: {type: string, minLength: 1, maxLength: 400}
+          minItems: 0
+        context_placement:
+          type: [string, 'null']
+          maxLength: 200
+        notice: {type: string, maxLength: 2000}
+        created_at: {type: string, format: date-time}
+      description: Concise internal skill/resource activation, no public install/activation endpoint. User selection
+        and permitted model selection use the same bounded loader; deduplicate version/resource activation per agent
+        context and check fit/permission without extra inference/discovery. Preserve root-branch isolation. No package
+        bodies, scripts, secrets or hidden reasoning.
+      examples:
+      - activation_id: 99999999-9999-4999-8999-999999999999
+        agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        root_agent_id: aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1
+        extension:
+          extension_id: careful-review
+          version: 1.0.0
+          digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+          namespace: ext.careful-review
+          scope: global
+          workspace_id: null
+        status: applied
+        content_resource_ids: [SKILL.md]
+        context_placement: bounded_task_guidance
+        notice: Fictional loader record. Instructions add no tool grant; repeated activation within this agent context
+          reuses this record.
+        created_at: '2026-10-17T02:00:00Z'

@@ -8,7 +8,7 @@ to reset a newer checkout.
 ## Source of truth
 
 - The current user request takes precedence over earlier design choices.
-- [Requirements](docs/requirements.md) use stable IDs and A1–A20 acceptance scenarios.
+- [Requirements](docs/requirements.md) use stable IDs and named acceptance scenarios.
 - [Decisions](docs/decisions.md) distinguish confirmed choices from proposed defaults.
 - Current architecture, technical/API design, and agent/tool policies describe
   intended behavior. Dated [logs](docs/logs/README.md) explain its evolution.

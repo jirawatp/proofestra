@@ -37,6 +37,11 @@ or have permission to test.
 - Validate tool/model/backend compatibility and constrain provider-hosted tools
   before dispatch. Use supervised, scoped SDK/CLI workers with supported auth;
   never scrape session tokens or launch unrestricted model-generated shell commands.
+- Keep imported skills/plugins and custom MCP contributions scoped and versioned.
+  Loading instructions or a manifest grants no authority or script execution.
+  Store server credentials centrally, namespace tools, and isolate branch scratch
+  state/results even when agents share one registration. Recheck enablement,
+  version/digest and revocation before dispatch; preserve uncertain remote effects.
 - Minimize retained conversation data and make retention and deletion behavior
   clear. Exports and traces may contain sensitive data and need careful handling.
 - Apply provider request limits and cost controls, and handle provider failures

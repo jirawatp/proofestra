@@ -7,6 +7,8 @@ The canonical identity, delegation, and shared-limit policy is in
 [agents and subagents](agents.md). [Tool routing](tools.md),
 [provider capabilities](provider-capabilities.md), and [scaling](scaling.md)
 define execution backends and configurable capacity.
+[Shared extensions](extensions.md) define provider-independent skill loading,
+plugin bundles, and the custom MCP/function broker.
 
 ## Deployment and stack
 
@@ -49,11 +51,13 @@ flowchart LR
     ROUTE --> API_TOOLS[Provider API tools]
     ROUTE --> WORKERS[Supervised SDK / CLI / MCP workers]
     ROUTE --> REG[Versioned registry]
+    REG --> EXT[Skill / plugin / custom MCP registrations]
+    ROUTE --> BRIDGE[Shared function and MCP broker]
     RUN --> DB
 ```
 
 Future layout: `src/web`, `src/server`, `src/core`, `src/providers`, `src/tools`,
-`src/backends`, `src/storage`,
+`src/backends`, `src/extensions`, `src/storage`,
 and `tests/fixtures`. These directories are not scaffolded yet. Keep orchestration
 independent of the HTTP framework. Adapters accept normalized text, an explicit
 model ID, output ceiling, deadline, and abort signal. They return text, concise
@@ -79,6 +83,35 @@ root/synthesizer as an implicit fallback. See [tool policy](tools.md).
 Freeze initial grant references and allowlists, recheck validity/revocation before
 dispatch, and record exact-action user decisions for missing scope within frozen
 routes/destinations. Broader allowlist changes need a new configured run.
+
+## Shared extension execution
+
+Register a skill/plugin/server once with a stable namespace and immutable
+version/digest. Global/workspace bindings control discovery; per-run/agent scope
+and grants narrow it. Skills use a scoped instruction/resource loader with lazy
+activation, separate from executable script/tool dispatch. Plugin imports validate
+supported declarative contributions; package hooks never execute merely because
+metadata was read. A native vendor manifest needs a validated import adapter.
+
+Each provider adapter maps relevant shared tool definitions to supported function
+schemas and collision-checked wire aliases. Calls return to the common broker,
+which owns validation, auth references, resource scope, accounting, and supported
+cancellation. Optional native MCP projection must preserve the same policy. Profiles
+without a suitable projection can use an approved capable helper or report
+unsupported; helpers-off, selected roots, and provider destinations remain intact.
+
+MCP broker versions/transports are explicit compatibility metadata. Backend-only
+STDIO launch configuration and remote auth never become model/browser catalog data.
+Namespaced logical IDs are based on configured registration identity, not server
+display names. Keep branch-specific handles, scratch/workspaces, and result scope;
+shared registration must not bypass the independent root-draft barrier.
+
+Freeze exact extension content/versions in run records, recheck current validity
+before each load/call, and block disabled/revoked/removed/superseded contributions.
+Only explicitly retained enabled/authorized versions can finish pinned work.
+Never silently update an active run or replay canceled extension work. A trusted
+operator configures registrations initially; catalog endpoints do not install
+packages, launch servers, or provide model-controlled administration.
 
 ## Workflow
 
@@ -211,6 +244,8 @@ monetary cap is promised.
 | Agent | Run-scoped unique ID, parent/root IDs, depth, name, role/task, profile/model/provider snapshot, status. Repeated provider/profile is allowed. |
 | Step/invocation | Unique step ID, run/agent/stage, initial/continuation/retry records, state, reservations, concise output, usage/error. |
 | Spawn | Durable run/parent/step/parent-invocation/tool-call tuple, request digest, child ID or denial, task/profile, ancestry and reservation outcome. Continuation is unique per parent-invocation batch. |
+| Extension/binding | Stable ID/namespace, type, immutable version/digest, safe origin/trust metadata, global/workspace binding, current enablement/revocation and contributed IDs. Secrets remain outside these public records. |
+| Skill activation | Run/agent/branch, extension version/digest, resource IDs/context placement, activation status and scope. Reading instructions is not script execution. |
 | Tool execution/native job | Requester/invocation, capability/tool/backend/profile and versions, validated argument digest, grant references, scope/destinations, reservations, status/artifacts, external completion and usage coverage. |
 | Grant/approval | User-authorized scope/expiry/revocation; pending exact action, run/requester/execution IDs, argument digest, decision and durable idempotency record. Never secrets or model-approved grants. |
 | Finding/citation | Claim/finding text, origin/tool/source identity, retrieval status/time, separate support-check status/method/limitations. Model citations start unverified. |
@@ -223,7 +258,7 @@ presentations. Do not persist HTTP debug payloads. File permissions are owner-on
 Delete/export require terminal runs in the conversation; active work returns 409.
 Deletion cascades through logical messages, runs, agent trees, spawn/tool/job and
 approval records, artifacts, events, and idempotency keys. Shared configuration
-grants remain subject to their own lifecycle. Explain external/remote artifact
+grants and extension registrations remain subject to their own lifecycle. Explain external/remote artifact
 cleanup separately rather than claiming local deletion removes vendor state.
 It does not guarantee forensic erasure of SQLite pages, backups, browser copies,
 downloaded exports, or provider-side data.

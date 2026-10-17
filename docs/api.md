@@ -3,13 +3,16 @@
 Status: draft design only. No application endpoint, provider adapter, tool executor,
 or agent runtime is implemented. [openapi.yaml](openapi.yaml) defines request and
 response shapes; this page defines application invariants. See [agents](agents.md),
-[tools](tools.md), [scaling](scaling.md), and [provider capabilities](provider-capabilities.md).
+[tools](tools.md), [shared extensions](extensions.md), [scaling](scaling.md), and
+[provider capabilities](provider-capabilities.md).
 Future types, mocks and Postman requests should derive from this contract. Reading
 it requires no Postman workspace, credentials, provider calls or installed CLI.
 
 Confirmed design scope includes provider API tools, local agent applications, SDKs
 and CLIs, MCP tools, and hosted agent services. Compatibility and implementation
 are staged per registered adapter; this scope does not claim live integration.
+Shared skills, plugin bundles and custom MCP servers are also confirmed design
+scope; no loader, installer or MCP broker is implemented.
 
 ## Browser boundary
 
@@ -30,7 +33,8 @@ local processes remain in the trust boundary; public/LAN exposure needs another 
 | --- | --- |
 | GET /session | Bootstrap local cookie/CSRF without provider calls. |
 | GET /providers | Paginated registered providers and configured profiles; no keys or live checks. |
-| GET /capabilities | Paginated catalog filtered by q, provider, profile_id, backend_id or backend_kind. |
+| GET /capabilities | Paginated catalog filtered by q, provider, profile_id, backend_id, backend_kind or extension_id. |
+| GET /extensions | Paginated shared registration metadata filtered by q, extension_id, kind, scope or profile_id. |
 | GET /runtime-policy | Versioned personal defaults and finite deployment ceilings; read only. |
 | GET /conversations | Cursor page, newest updated first with UUID tie-break. |
 | POST /conversations | Create blank conversation; 201 and Location. |
@@ -71,6 +75,76 @@ observability and enforceable execution controls. Documented support is distinct
 from tested compatibility or current availability. No tool is assumed universal
 across a provider's models, API routes, SDK/CLI versions or authentication modes.
 
+## Shared extension catalog
+
+`GET /extensions` returns authorized cached metadata for registered skills, plugin
+bundles and custom MCP servers. Register once in the harness and reuse the same
+registration across compatible connected profiles. Per-profile projections are
+instructions, direct functions, native MCP, a harness bridge, permitted delegation
+or unsupported. A connected provider does not imply that every contribution works.
+Delegation still requires helpers enabled and an already allowed profile.
+
+The stable configured `extension_id` identifies the registration. It is separate
+from package/display names and MCP `serverInfo.name`. Records include kind,
+immutable version/SHA-256 digest, sanitized origin/license, trust/status,
+global/workspace scope, and compatibility/readiness. Callable capability/tool IDs
+use `ext.<extension_id>.<local_id>`; provider wire aliases are deterministic,
+collision-checked projections within provider naming limits. Validate the exact
+namespace and unique registration/projection identities server-side.
+Extension-prefixed records require server-derived provenance. Contribution and
+profile arrays in extension metadata are previews capped at 100 entries each;
+page `/capabilities?extension_id=...` with profile/provider/backend filters for
+callable contributions and their compatibility, rather than treating a preview as
+the complete catalog or injecting it all into model context.
+
+Skill metadata describes instructions/resources; advisory `allowed-tools` content
+cannot grant execution permission. A bounded internal loader supports instruction
+injection when a model has no filesystem access. Scripts use separately permitted
+tool execution. A plugin manifest is a harness bundle/import format; native vendor
+hooks, authentication and install formats require compatible adapters. Resources
+and prompts are not silently converted into callable tools.
+
+MCP metadata names a configured broker registration, declared/negotiated protocol
+version and transport adapter, authentication readiness and sanitized endpoint
+origin. Supported transports are tested stdio or Streamable HTTP; legacy SSE needs
+an explicit adapter. Do not assume a universal initialize/session lifecycle across
+protocol families. Private operator configuration holds launch/environment/resource
+settings and secret-store references. Browser/model metadata never contains those
+settings, raw credential-bearing URLs, tokens or credential references. Remote
+origins omit userinfo, paths and queries; stdio has no endpoint origin.
+
+Catalog reads do not fetch package bodies, discover/connect MCP servers, access
+credentials, execute hooks/scripts or invoke models. Registration/enablement is
+operator configuration in this draft; installer/admin write APIs need a separate
+design. There is no model-accessible install or grant endpoint. The existing
+`ToolInvocationRequest`, route, grant, approval, budget and idempotency contracts
+apply to both native and bridged tool projections; the server derives provenance.
+
+Optional run `extension_refs` selects exact already registered authorized content.
+Omission uses the existing authorized selection, empty when none. Freeze resolved
+versions/digests/scope with the run, with one version per registration; snapshots and exports retain provenance plus
+concise per-agent `extension_activations`, also emitted as `extension.activated`.
+Activation records identify permitted resources/context placement without copying
+all skill bodies/assets into events or exports. Repeated activation reuses the
+agent's existing version/resource record rather than adding hidden duplicate context.
+Apply package/resource scope, licensing and context-fit checks before loading.
+
+One discovery-active version exists per registration/scope. Retained old content
+is not a duplicate default installation; an existing pinned run may use it only
+when explicitly retained enabled and authorized. Recheck version/digest, enablement,
+revocation, branch/resource scope and current grants before every load/dispatch.
+Disable/remove/revoke/supersede invalidates affected pending work and bound approval;
+unrelated registry changes do not cancel unaffected pinned runs. Stop affected
+running work best-effort, preserving unknown external completion and no automatic replay.
+
+Shared registration does not share root drafts, private results, mutable scratch
+or session/resource handles. Keep state and grants per run/root branch; common
+preexisting read-only sources may be shared. During independent drafting, a route
+without adequate isolation is ineligible. Connection pooling cannot mix credentials,
+workspace scope, mutable handles or sibling-branch context.
+
+## Root workflow
+
 Quick has one root, no root peer review, and no synthesizer. Team has at least two
 roots within effective deployment policy, with `synthesizer_agent_id` identifying
 one of them. The present `all_peers` topology plans n drafts, n reviews and one
@@ -90,7 +164,7 @@ Queued, running, waiting-for-tool/children and awaiting-approval work is active.
 Live submissions include expected catalog/policy versions from the displayed
 configuration; a version change returns 409 before dispatch. A distinct start
 during active work returns 409 `run_in_progress`. Persist prompt,
-run, frozen profiles/capabilities/policy/grants, key/digest and first event atomically.
+run, frozen profiles/capabilities/extensions/policy/grants, key/digest and first event atomically.
 
 Execution defaults to mock. Live requires server enablement and compatible,
 authorized configured routes. Team defaults to delegation enabled and tool mode
@@ -161,6 +235,9 @@ optional specific tool, scoped task and schema-validated arguments. The server
 supplies caller/run/step/invocation IDs. It selects a directly compatible native
 tool or a helper route within frozen allowlists, grants and execution controls.
 `RouteDecision` records direct, delegated, awaiting_approval, blocked or unavailable.
+The server also derives run/root-branch identity and binds resource/session handles
+to that context. A model-supplied branch ID or handle is data, never authority to
+read another branch or choose its credentials.
 Tool-created managed helpers require `delegation.enabled`; auto tool mode cannot
 bypass helpers-off. A native backend must also honor disabled helper spawning or
 be ineligible, even in bounded-job mode. No eligible route means a visible
@@ -177,7 +254,8 @@ allowlists or repair an incompatible backend.
 `POST /runs/{run_id}/tool-approvals` requires the pending approval ID, execution ID,
 SHA-256 digest of the exact normalized nonsecret arguments, and approve/deny. Bind
 that pending record to the run/caller, tool/profile/backend, task and policy version.
-The trusted approval UI and its credentials must be isolated from agent-controlled
+For extension tools, bind the exact version/digest/namespace and resource scope as
+well; changed content cannot reuse an old approval. The trusted approval UI and its credentials must be isolated from agent-controlled
 browsers, shells and MCP environments; Origin/CSRF alone does not prove a human
 action. The UI displays the complete nonsecret action preview and referenced credential
 scope; actual secret values remain server-side. A changed action invalidates approval.
@@ -236,7 +314,7 @@ sensitive values. Tool denials/provider failures are run data, not retrieval HTT
 ## Events, export and deletion
 
 SSE uses increasing run-scoped numeric IDs and typed bounded envelopes. Events
-cover runs, agent/step lineage, spawns, routes, tool execution, approval and external
+cover runs, agent/step lineage, spawns, extension activation, routes, tool execution, approval and external
 reconciliation. Completed helper/tool events include concise permitted results and
 accounting; no raw token stream or private reasoning. Persist transitions and events
 atomically. `Last-Event-ID` replays after that sequence; absent means zero. Invalid,
@@ -247,7 +325,8 @@ reconciliation records exist, an explicit replay returns them and closes when
 caught up. Deletion returns 404.
 
 Export version 1 includes conversation/messages and complete terminal run trees,
-all tool/route/approval records, source provenance and scoped accounting. It is not
+all tool/route/approval records, frozen extension provenance/concise activations,
+source provenance and scoped accounting. It is not
 a paginated snapshot preview. Downloads contain user/task text; disclose before
 export. Delete/export reject active runs with 409. Deletion cascades through local
 records, but does not erase backups, SQLite pages, downloads, or provider-side

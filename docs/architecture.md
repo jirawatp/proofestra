@@ -21,6 +21,8 @@ This repository contains planning documents and a standalone simulated design pr
 | Agent tree coordinator | Stable agent identities, user-configured roots, nested helper admission, scoped context, parent return/resume, and tree-wide cancellation. |
 | Provider adapters | Consistent model invocation, capability reporting, normalized failures, and usage accounting. |
 | Capability/tool registry and router | Versioned provider/profile/backend compatibility, filtered tool selection, readiness, destinations, and automatic scoped routing. |
+| Shared extension manager | Skills, plugin manifests, custom MCP registrations, immutable versions/digests, and global/workspace enablement. |
+| Skill loader and MCP/function bridge | Scoped instructions/resources and one broker exposing compatible shared tools across provider adapters. |
 | Permission service and workers | Existing task grants, concrete missing-scope approvals, supervised SDK/CLI/MCP execution, and supported cancellation. |
 | Evidence layer | Source metadata, claim-to-source links, citation verification status, and retrieval boundaries. |
 | Synthesis layer | Consolidated answers, concise review findings, disagreements, and uncertainty. |
@@ -53,6 +55,13 @@ executor, or through a registered SDK/CLI worker. Native tools are not interchan
 route by tested capability and compatibility. Prefer the current profile's tool,
 then an approved capable helper/backend, without adding destinations or permissions.
 See [tool policy](tools.md) and [provider research](provider-capabilities.md).
+
+Skills, plugins, and custom MCP servers are shared harness registrations usable
+across connected providers. The harness injects eligible skill guidance and maps
+tool calls to a scoped broker, avoiding a required per-vendor installation.
+Provider-exclusive native tools still need their own compatible routes. Shared
+registration does not share current drafts or scratch handles between root branches.
+See [extension design](extensions.md) for namespaces, lifecycle, and permissions.
 
 ## Evidence and evaluation records
 

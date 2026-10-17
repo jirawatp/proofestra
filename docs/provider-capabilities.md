@@ -12,6 +12,11 @@ design scope: API tools, local agent apps/SDKs/CLIs, MCP/local tools, and hosted
 agent services where supported. Compatibility and delivery remain staged.
 See [tool policy](tools.md), [scaling](scaling.md), and [decisions](decisions.md).
 
+Shared skills/plugins/custom MCP use a [harness-owned extension layer](extensions.md).
+Its function bridge is a proposed way for connected providers to reuse one custom
+server registration; native provider MCP connector restrictions are not the same
+as that broker's capabilities. No native plugin-format parity is assumed.
+
 ## Direct model APIs
 
 | Provider / surface | Documented tool options | Adapter consequence |

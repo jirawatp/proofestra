@@ -9,8 +9,8 @@ chat, a local ZIP, temporary browser tabs, and machine-specific paths are not ne
 Repository: [jirawatp/proofestra](https://github.com/jirawatp/proofestra).
 Traceability branch: `codex/project-traceability`, created from
 [`7a23553`](https://github.com/jirawatp/proofestra/commit/7a235536be0a8df835f2f897a07f5f436eef2bbe).
-This branch adds project history and continuation instructions; it does not merge
-itself into `main`. Use the newest checkpoint on the branch and inspect actual Git
+This branch carries project history, continuation instructions, and subsequent
+design revisions; it does not merge itself into `main`. Use the newest checkpoint on the branch and inspect actual Git
 status/history before editing.
 
 For a new machine:
@@ -36,8 +36,9 @@ no model credentials are required.
 - **Current interface:** open [the mockup](docs/prototype/index.html) directly in
   a browser. It uses presets, stores chat in tab memory, and makes no provider calls.
   Its demo export is not the future backend's portable export implementation.
-- **Latest product design baseline:** `7a23553`. The traceability branch builds on
-  it. [Design review](docs/design-review.md) records the checks and limitations;
+- **History:** `7a23553` records the broad tool design; `1374641` adds traceability.
+  The containing revision adds shared skills/plugins/custom MCP scope and design.
+  Git HEAD and the dated logs identify the latest checkpoint. [Design review](docs/design-review.md) records the checks and limitations;
   historical passes are evidence for that snapshot, not proof that future edits pass.
 
 ## Decisions to preserve
@@ -53,6 +54,14 @@ Automatic routing selects a compatible current-profile tool or an approved helpe
 within existing permissions. Capability selection never grants permission, silently
 adds a provider, or replaces the chosen root/synthesizer. Helpers-off must be honored
 by managed and native routes. Compatibility is established per adapter in stages.
+
+The user also confirmed shared agent skills, plugin bundles, and custom MCP servers
+usable across connected providers. Register once in a global/workspace catalog;
+adapters load eligible skill instructions and project shared tools through the
+harness broker. Preserve package identity, pinned versions/digests, namespaces,
+central secrets, current enablement/grants, and per-root-branch scratch isolation.
+Skill content does not grant execution permission. Native import formats and
+provider-exclusive tools still require compatible adapters or permitted delegation.
 
 Keep provider, profile, backend, tool, and agent identities separate. Preserve
 independent root drafting, scoped children, invocation-scoped spawn deduplication,
@@ -71,7 +80,8 @@ commercial service or paid model run has been launched.
 1. [Project instructions](AGENTS.md) and [history index](docs/logs/README.md).
 2. [Current requirements](docs/requirements.md) and [current decisions](docs/decisions.md).
 3. [Architecture](docs/architecture.md), [technical design](docs/technical-design.md),
-   [agent policy](docs/agents.md), [tool policy](docs/tools.md), and [scaling](docs/scaling.md).
+   [agent policy](docs/agents.md), [tool policy](docs/tools.md),
+   [shared extensions](docs/extensions.md), and [scaling](docs/scaling.md).
 4. [API semantics](docs/api.md) and [OpenAPI contract](docs/openapi.yaml).
 5. [Experience](docs/experience.md), [review evidence](docs/design-review.md),
    [evaluation](docs/evaluation.md), and [roadmap](docs/roadmap.md).
@@ -91,7 +101,9 @@ Start with deterministic adapters and a complete chat/history/run flow. Derive
 validation and types from the contract. Preserve same-provider identities,
 root-draft isolation, cancellation/restart interruption, idempotency, budgets,
 tool routing/grants, and export provenance as the coordinator is added. Use the
-stable acceptance scenarios A1–A20 and requirement IDs to select meaningful tests.
+stable acceptance scenarios A1–A25 and requirement IDs to select meaningful tests.
+The shared-extension slice adds EX-01–EX-08: use deterministic skills, plugin
+bundles, and custom MCP fixtures before installing or connecting real packages.
 Do not equate the browser mock's timers/state with a durable backend implementation.
 
 Live integration follows the mock milestone. Check current official documentation,
@@ -108,6 +120,7 @@ to continue the design or mock implementation.
 | Runtime, packages, SQLite driver/migrations | Stack is proposed; pin versions and choose a driver at implementation. |
 | Exact models and native backends | Broad scope confirmed; actual profiles, auth, compatibility and admission need validation. |
 | Approval isolation | Required boundary; choose and test an implementation outside agent-operated UI/CLI access. |
+| Shared extension formats and broker | Skill loader, manifest/import adapters, supported MCP protocol versions/transports, lifecycle and branch isolation remain to implement and test. |
 | Deployment limits and price data | Personal defaults only; measure before tuning and report unknown costs honestly. |
 | Large-team review | All-peer small-team baseline; bounded review/hierarchical synthesis need separate fixtures. |
 | Commercial features | Preserve Apache 2.0 core; select optional offerings after user and cost evidence. |

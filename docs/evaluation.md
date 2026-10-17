@@ -81,6 +81,17 @@ Covered read/sandbox/reversible workspace actions must execute without per-call
 approval; an action outside the grant pauses on the exact action. Register large
 catalogs and policy caps above personal defaults without exposing all tools at once.
 Concurrency assertions use effective advertised limits, not a hardcoded two.
+Use A21–A25 extension fixtures: shared global/workspace skills and progressive
+loading across the three initial providers; trusted manifests and digest checks;
+custom MCP through mocked STDIO/negotiated HTTP; incapable profiles with helper
+ON/OFF; and version pinning, collision/wire-name validation, disable/revocation,
+cancellation and secret-free exports. Import/load alone executes no script and
+grants no permission. Provider aliases map to the same canonical IDs without
+separate manual per-vendor installations or exclusive hosted-tool parity claims.
+Shared registration must isolate root-draft scratch/handles/results per branch;
+otherwise the route is ineligible. Disabled/removed/superseded pinned versions
+cannot dispatch unless explicitly retained enabled/authorized. Native format
+importers and transports stay unsupported until compatibility checks pass.
 Default checks use mocks and require no paid calls. Live evaluation is a separate,
 explicitly opted-in operation with a preview of destinations, grants, conditions,
 observable request/tool/job limits and opaque native usage. Missing native scope
@@ -100,6 +111,9 @@ For each run retain case/version, timestamp, condition, prompts, exact model IDs
 adapter/configuration version, root/child IDs, parentage/depth, model profiles,
 backend/validation versions, helper/tool policy, scoped grants, shortlist/routing
 decisions, denials/failures, synthesizer ID, review coverage, outcomes and artifacts.
+Include extension IDs/scope, manifest/resource versions/digests, loaded resource
+references, MCP transport/namespace, alias mappings and lifecycle decisions; never
+store central credentials or raw secret-bearing plugin/MCP payloads.
 Record harness-dispatched requests, observed tool operations and native jobs as
 separate units; include nullable native inner counts/visibility, elapsed time,
 reported vs estimated/unknown tokens and cost with pricing source/date if available.
