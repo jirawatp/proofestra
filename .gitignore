@@ -8,6 +8,9 @@
 # Local data, transcripts, and generated files
 data/
 logs/
+# Keep project history documents; runtime logs remain ignored.
+!docs/logs/
+!docs/logs/**
 exports/
 coverage/
 dist/

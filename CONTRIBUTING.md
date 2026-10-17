@@ -4,6 +4,10 @@ Proofestra is in requirements and design, with a standalone simulated interface
 for review. The application backend, live agent harness, provider integrations,
 and application test suite have not been implemented yet.
 
+For a new checkout or chat, begin with [CONTINUE.md](CONTINUE.md) and
+[AGENTS.md](AGENTS.md). Use the [project logs](docs/logs/README.md) to understand
+changes without relying on the original conversation.
+
 ## Useful contributions
 
 - Clarify the product goals, architecture, or roadmap with concrete examples.
@@ -14,6 +18,12 @@ and application test suite have not been implemented yet.
 Open an issue before starting substantial work so we can agree on its scope.
 Keep pull requests focused and explain the problem, proposed behavior, and any
 tradeoffs. Separate unrelated changes into separate pull requests.
+
+For material requirement, decision, or design changes, update the current
+specification and append a dated entry to its project log. Preserve stable IDs,
+link affected requirements and evidence, and reference superseded entries rather
+than overwriting their history. Update the continuation checkpoint with actual
+results, validation limits, and next work before handing off.
 
 ## Validation
 

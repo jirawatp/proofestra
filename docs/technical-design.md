@@ -1,6 +1,7 @@
 # Technical design
 
 Status: proposed design, 17 October 2026. No application backend or API is implemented.
+See the [design change log](logs/design.md) for dated revisions and their evidence.
 See [requirements](requirements.md), [experience](experience.md), and [API](api.md).
 The canonical identity, delegation, and shared-limit policy is in
 [agents and subagents](agents.md). [Tool routing](tools.md),

@@ -69,8 +69,16 @@ compatibility or access to another application's signed-in session is promised.
 
 ## Start here
 
+To resume work in a new chat, agent, or machine, read
+[CONTINUE.md](CONTINUE.md) and the [project history](docs/logs/README.md).
+The `codex/project-traceability` branch contains this checkpoint, based on the
+latest product design at `7a23553`. It records current state, next work, confirmed
+choices, proposed defaults, and dated changes without requiring the original chat.
+
 | Document | Purpose |
 | --- | --- |
+| [Continue the project](CONTINUE.md) | Portable checkpoint, setup, reading order, next work, and resume prompt |
+| [Project logs](docs/logs/README.md) | Requirement, decision, and design history linked to source revisions |
 | [Requirements](docs/requirements.md) | Confirmed scope, priorities, and acceptance scenarios |
 | [Interactive mockup](docs/prototype/index.html) | Clickable design with simulated answers and no model calls |
 | [Experience design](docs/experience.md) | Chat flow, screen states, visual direction, and accessibility |

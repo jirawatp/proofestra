@@ -2,6 +2,7 @@
 
 Recorded 17 October 2026. This file separates the user's decisions from proposed
 engineering defaults. Requirements and design do not establish implementation.
+For dated changes and source revisions, see the [decision log](logs/decisions.md).
 
 ## Confirmed direction
 

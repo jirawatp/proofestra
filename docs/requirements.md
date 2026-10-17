@@ -2,6 +2,7 @@
 
 Status: design proposal. No application or live integration is implemented.
 Requirement IDs below are stable references for design and later implementation.
+The [requirement log](logs/requirements.md) traces scope changes and source revisions.
 
 ## Purpose and decisions
 
