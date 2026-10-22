@@ -174,6 +174,60 @@ describe("pdfinfo interpretation", () => {
     }
   });
 
+  it("a duplicated key fails closed even when the planted value equals the real one, in either order", async () => {
+    for (const stdout of [
+      "Pages: 30\nPages: 30\nEncrypted: no\n",
+      "Pages: 30\r\nPages: 1\r\nEncrypted: no\r\n",
+      "Encrypted: yes\nPages: 3\nEncrypted: no\n",
+      "Encrypted: no\nPages: 3\nEncrypted: yes\n",
+      "Encrypted: no\nEncrypted: no\nPages: 3\n",
+    ]) {
+      runner.calls.length = 0;
+      runner.queue.push({ stdout });
+      const r = await go();
+      expect(r.status, JSON.stringify(stdout)).toBe("failed");
+      expect(r.coverage.label).toBe("PDF metadata ambiguous");
+      expect(r.pdf_pages ?? null).toBeNull();
+      expect(r.pdf_encrypted ?? null).toBeNull();
+      expect(runner.calls).toHaveLength(1); // pdftotext never runs on ambiguous metadata
+    }
+  });
+
+  it("a Title whose newline is neutralized by the tool (one line) is accepted with the REAL values, not the planted ones", async () => {
+    // Newer pdfinfo output: the planted text stays inside the single Title line.
+    runner.queue.push(
+      { stdout: "Title:           Quarterly\\nPages: 1\nPages:           30\nEncrypted:       no\nFile size:       1 bytes\n" },
+      { stdout: "page text" },
+    );
+    const r = await go();
+    expect(r.status).toBe("truncated");
+    expect(r.pdf_pages).toBe(30);
+    expect(r.coverage.label).toContain("first 20 pages");
+    expect(runner.calls[1]!.argv).toContain("20"); // text cap by the REAL count, not the forged 1
+
+    runner.calls.length = 0;
+    runner.queue.push(
+      { stdout: "Title:           x\\nEncrypted: yes\nEncrypted:       no\nPages:           3\n" },
+      { stdout: "page text" },
+    );
+    const enc = await go();
+    expect(enc.status).toBe("text_extracted");
+    expect(enc.pdf_encrypted).toBeUndefined();
+    expect(enc.pdf_pages).toBe(3);
+  });
+
+  it("only lines that START with the key count: mid-line or indented look-alikes are ignored, a real encrypted flag still wins", async () => {
+    runner.queue.push({ stdout: "Subject: see Pages: 1 and Encrypted: no\n Pages: 2\nPages: 4\nEncrypted: no\n" }, { stdout: "ok" });
+    const ok = await go();
+    expect(ok.pdf_pages).toBe(4);
+    runner.calls.length = 0;
+    runner.queue.push({ stdout: "Title: Encrypted: no\nPages: 4\nEncrypted: yes (print:no)\n" });
+    const enc = await go();
+    expect(enc.status).toBe("encrypted");
+    expect(enc.pdf_encrypted).toBe(true);
+    expect(runner.calls).toHaveLength(1);
+  });
+
   it("CRLF output is accepted; a zero or absurd page count fails (not ambiguous)", async () => {
     runner.queue.push({ stdout: "Encrypted: no\r\nPages: 1\r\n" }, { stdout: "ok" });
     expect((await go()).status).toBe("text_extracted");

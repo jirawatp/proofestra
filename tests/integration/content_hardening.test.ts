@@ -14,7 +14,8 @@ import {
   planAttachmentRoutes,
   sniffMime,
 } from "../../src/core/attachments.js";
-import { describeBinaryToolCapabilities } from "../../src/core/parsers/binaryTools.js";
+import { describeBinaryToolCapabilities, discoverPopplerPair } from "../../src/core/parsers/binaryTools.js";
+import { runBoundedProc } from "../../src/core/parsers/boundedProc.js";
 import {
   allVideoStreamsBounded,
   isMediaPreviewValidated,
@@ -89,28 +90,79 @@ function geminiRoute(ref: AttachmentRef) {
   })[0]!;
 }
 
+/**
+ * What the INSTALLED pdfinfo prints for a file, split exactly as the parser
+ * splits it. Poppler 26.04 prints an Info string's newline verbatim, so a Title
+ * can plant a look-alike line; Poppler 26.09 does not start a new line for it.
+ * The tests below assert the secure outcome for whichever the tool does, and
+ * the exact-one-line contract itself is pinned deterministically (raw output)
+ * in tests/unit/parsers_pdf.test.ts.
+ */
+async function installedPdfinfoLines(file: string): Promise<string[]> {
+  const bins = discoverPopplerPair();
+  if (!bins) throw new Error("Poppler is required by this test");
+  const r = await runBoundedProc(bins.pdfinfo.path, [file], {
+    timeoutMs: 5_000,
+    captureStdoutBytes: 32 * 1024,
+    captureStderrBytes: 8 * 1024,
+  });
+  expect(r.exitCode).toBe(0);
+  return r.stdout.split(/\r?\n/);
+}
+const keyLines = (lines: string[], key: string): string[] => lines.filter((l) => l.startsWith(key));
+
 describe("PDF metadata cannot be spoofed by the document (requires poppler)", () => {
-  it.skipIf(!caps.pdf_text_extraction)("a Title containing 'Pages: 1' on a 30-page PDF fails closed", async () => {
+  it.skipIf(!caps.pdf_text_extraction)("a Title containing 'Pages: 1' on a 30-page PDF never makes the forged count win", async () => {
     const honest = await extractFile(writeTemp("honest.pdf", buildPdf(30, { title: "Quarterly" })));
     expect(honest.pdf_pages).toBe(30);
+    expect(honest.status).toBe("truncated");
 
-    const spoof = await extractFile(writeTemp("spoof.pdf", buildPdf(30, { title: "Quarterly\nPages: 1" })));
-    expect(spoof.status).toBe("failed");
-    expect(spoof.coverage.label).toBe("PDF metadata ambiguous");
-    expect(spoof.pdf_pages ?? null).toBeNull();
-    expect(spoof.extractedText).toBeNull();
-    // No page count means no native route.
-    const ref = refFrom(spoof, "application/pdf", "pdf");
-    expect(geminiRoute(ref).route).toBe("attachment_only");
+    const file = writeTemp("spoof.pdf", buildPdf(30, { title: "Quarterly\nPages: 1" }));
+    const pagesLines = keyLines(await installedPdfinfoLines(file), "Pages:");
+    const spoof = await extractFile(file);
+    expect(spoof.pdf_pages ?? null).not.toBe(1);
+    if (pagesLines.length !== 1) {
+      // The tool printed the planted newline verbatim: ambiguous, so fail closed.
+      expect(pagesLines.length).toBeGreaterThan(1);
+      expect(spoof.status).toBe("failed");
+      expect(spoof.coverage.label).toBe("PDF metadata ambiguous");
+      expect(spoof.pdf_pages ?? null).toBeNull();
+      expect(spoof.extractedText).toBeNull();
+      // No page count means no native route.
+      expect(geminiRoute(refFrom(spoof, "application/pdf", "pdf")).route).toBe("attachment_only");
+    } else {
+      // The tool did not turn the Title into a second line: the single Pages
+      // line is the REAL count and the 20-page text cap still applies.
+      expect(pagesLines[0]).toMatch(/^Pages:\s*30\s*$/);
+      expect(spoof.pdf_pages).toBe(30);
+      expect(spoof.status).toBe("truncated");
+      expect(spoof.coverage.truncated).toBe(true);
+      expect(spoof.coverage.label).toContain("first 20 pages");
+      expect(spoof.extractedText).toContain("PAGE_20_BUILT");
+      expect(spoof.extractedText).not.toContain("PAGE_21_BUILT");
+    }
   });
 
-  it.skipIf(!caps.pdf_text_extraction)("an injected 'Encrypted: no' line cannot mask the real flag", async () => {
-    const r = await extractFile(writeTemp("enc.pdf", buildPdf(3, { title: "x\nEncrypted: no" })));
-    expect(r.status).toBe("failed");
-    expect(r.coverage.label).toBe("PDF metadata ambiguous");
-    const yes = await extractFile(writeTemp("enc2.pdf", buildPdf(3, { title: "x\nEncrypted: yes" })));
-    expect(yes.status).toBe("failed");
-    expect(yes.pdf_encrypted ?? null).toBeNull();
+  it.skipIf(!caps.pdf_text_extraction)("an injected 'Encrypted:' line in the Title can neither mask nor forge the real flag", async () => {
+    for (const forged of ["no", "yes"]) {
+      const file = writeTemp(`enc-${forged}.pdf`, buildPdf(3, { title: `x\nEncrypted: ${forged}` }));
+      const encLines = keyLines(await installedPdfinfoLines(file), "Encrypted:");
+      const r = await extractFile(file);
+      if (encLines.length !== 1) {
+        expect(encLines.length).toBeGreaterThan(1);
+        expect(r.status, forged).toBe("failed");
+        expect(r.coverage.label, forged).toBe("PDF metadata ambiguous");
+        expect(r.pdf_encrypted ?? null, forged).toBeNull();
+        expect(r.extractedText, forged).toBeNull();
+      } else {
+        // The PDF is genuinely not encrypted, and a forged 'yes' must not flip it either.
+        expect(encLines[0], forged).toMatch(/^Encrypted:\s*no\b/);
+        expect(r.status, forged).toBe("text_extracted");
+        expect(r.pdf_pages, forged).toBe(3);
+        expect(r.pdf_encrypted ?? false, forged).toBe(false);
+        expect(r.extractedText, forged).toContain("PAGE_01_BUILT");
+      }
+    }
   });
 });
 

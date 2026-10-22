@@ -9,6 +9,16 @@ unavailable without them).
 
 ## Release verification checkpoint (2026-10-22, uncommitted on a96dedf; XLOG-020)
 
+> **CI regression (XLOG-021):** after publication on `codex/proofestra-local-v1`
+> (commit `e476616`, pull request 1), remote CI failed the same two PDF-metadata tests
+> in `tests/integration/content_hardening.test.ts` on Homebrew Poppler 26.09.0
+> (1,577 of 1,579 passed). The local checkpoint below used Poppler 26.04.0. The tests
+> assumed that older tool's verbatim Title newline; the production parser was not
+> defective and is unchanged. The tests now assert the secure outcome for either tool
+> behavior, with new deterministic raw-output unit tests. **Fresh CI has not run on the
+> correction; no CI pass is claimed.** Next: independent Opus review, then operator CI.
+> See [release verification](docs/verification/release-verification-2026-10-22.md).
+
 **Measured (operator, clean isolated locked install, canonical `npm run check`):
 PASS**, 1,579 tests in 68 files, 56/56 production TS/TSX files; statements 98.08%
 (5,792/5,905), branches 95.17% (4,138/4,348), functions 98.91% (913/923), lines

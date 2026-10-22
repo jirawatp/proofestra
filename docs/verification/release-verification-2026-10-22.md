@@ -111,6 +111,56 @@ input through the input driver. The HTTP checks above cover the relevant UTF-8,
 multipart and cancellation cases at the API level, but they do **not** prove the
 native user experience for those four interactions; they remain open.
 
+## Post-publication CI regression (2026-10-22, recorded after the checkpoint above)
+
+The checkpoint above is a **local** result and is preserved as written. After the
+operator published commit `e476616` on branch `codex/proofestra-local-v1` and opened
+pull request 1, the remote CI (macOS 15 arm64, Node 22.19, npm 10.9.3, Homebrew
+Poppler 26.09.0 and ffmpeg 9.0.1_1) **failed on both the push run and the
+pull-request run with the same two tests**: 1,577 passed and 2 failed of 1,579 in
+68 files. Install, parser preflight, lint, all three typechecks and the coverage
+thresholds passed (98.08 / 95.17 / 98.91 / 99.26 percent, identical to the local
+run); the build and the compiled-worker smoke were not reached because the test
+stage failed first. **This CI run is a failure, and no new CI pass is claimed here.**
+
+| Failed test (`tests/integration/content_hardening.test.ts`) | Expected | Actual on Poppler 26.09.0 |
+| --- | --- | --- |
+| a Title containing `Pages: 1` on a 30-page PDF | `failed` / "PDF metadata ambiguous" | `truncated` |
+| an injected `Encrypted: no` line in the Title of a 3-page PDF | `failed` / "PDF metadata ambiguous" | `text_extracted` |
+
+**Diagnosis.** The local environment had Poppler 26.04.0, whose `pdfinfo` prints an
+Info-dictionary string's newline verbatim; the planted `Pages: 1` / `Encrypted: no`
+therefore became a second line starting with the key (reproduced locally: the output
+contains both the planted and the real `Pages:` line), and the parser correctly failed
+closed. The two tests assumed that behavior of the tool, not only the parser's rule.
+The parser accepts `pdfinfo` output only when exactly one line starts with `Pages:`
+and exactly one with `Encrypted:`. A result of `truncated` (which requires more than
+20 pages) and of `text_extracted` for a 3-page file can only be produced after that
+exact-one-line check passed, so on 26.09.0 the planted text was **not** at the start
+of a line, and the single `Pages:` line carried the real count (30) and the single
+`Encrypted:` line the real value (`no`). That is a deduction from the parser's
+deterministic contract and the CI outcomes; the raw 26.09.0 `pdfinfo` text itself was
+not captured, and Poppler 26.09.0 was not available to run locally. No production
+defect was found: a forged page count or encryption flag did not win (30 pages was
+reported as 30, capped at the unchanged 20-page text limit; the un-encrypted file
+stayed un-encrypted). The production parser is unchanged.
+
+**Correction (tests and docs only).** The two real-tool tests now read the installed
+tool's actual `pdfinfo` output with the same bounded runner and assert the secure
+outcome for whichever form it takes: if the output has anything other than exactly one
+`Pages:` / `Encrypted:` line the extraction must fail closed with no page count, no
+text and no encryption claim; if it has exactly one, the real value must be used (the
+forged count or `yes` must never win; the 20-page cap, `truncated` status and the
+no-text-beyond-page-20 rule still apply). New deterministic unit tests on raw metadata
+cover equal-value duplicate lines in either order, CRLF duplicates, planted `yes`
+before or after the real `no`, a neutralized one-line Title (accepted, real values
+used), and mid-line or indented look-alikes (ignored). Mutating the parser to accept
+duplicates, drop the 20-page cap or match keys anywhere in a line fails these tests.
+Locally (Poppler 26.04.0) the fail-closed branch is the one exercised; the
+single-line branch of the real-tool tests will only be exercised by CI on 26.09.0,
+and the unit tests cover it deterministically here. A fresh CI result is required
+before any claim that CI passes.
+
 ## Limits and non-claims
 
 - No real provider inference or paid call occurred. Mock and intercepted-wire tests
@@ -133,6 +183,6 @@ native user experience for those four interactions; they remain open.
 ## Related records
 
 [RLOG-023](../logs/requirements.md), [DLOG-020](../logs/decisions.md),
-[XLOG-018, XLOG-019 and XLOG-020](../logs/design.md), [CONTINUE.md](../../CONTINUE.md),
+[XLOG-018 to XLOG-021](../logs/design.md), [CONTINUE.md](../../CONTINUE.md),
 [development policy](../development-policy.md) and the earlier
 [content-analysis verification](content-analysis-2026-10-21.md).
