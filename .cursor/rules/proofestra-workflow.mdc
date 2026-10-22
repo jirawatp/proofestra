@@ -1,0 +1,70 @@
+---
+description: Required Proofestra model roles, honest verification and 90 percent coverage gate
+alwaysApply: true
+---
+
+# Proofestra development workflow
+
+Use the user's current requested development roles: **GPT Sol** for planner and
+designer, **Opus 5.5** for reviewer and advisor, and **Sonet 5.5** (the user's
+exact spelling) for worker. Before assigning substantive new implementation,
+inspect Cursor's actual available model names and record the selected model for
+each role. If the UI identifies **Sonnet 5.5** as the intended worker, record that
+verified mapping explicitly. Do not silently substitute another model or claim
+these models ran merely because this instruction exists. An unavailable model or
+unavailable model picker is a specific blocker for that role; continue independent
+verification and preparation, then report the blocker. Never create a new grant,
+subscription, paid API call or spending authorization to satisfy this rule.
+
+For every material change, use a plan, worker implementation and independent
+review/advice in those roles. Preserve existing work and follow AGENTS.md and
+docs/development-policy.md. Rules are persistent instructions; they do not prove
+model availability or automatically enforce the selected model in Cursor.
+
+Run npm run test:coverage before declaring a release ready. Statements, branches,
+functions and lines must each be at least 90% across all production src/**/*.ts
+and src/**/*.tsx, including unimported files. Do not lower thresholds, broadly
+exclude code, add coverage-ignore directives, or write trivial invocation tests
+to make the gate pass. Test meaningful user outcomes, failure and cancellation
+paths. Report actual percentages and any failing gate; a passing test count is
+not a coverage percentage. Mock and intercepted-wire tests are not live tests.
+
+Latest user instruction replaces Fable with **GPT Sol** for planner/designer.
+Do not retry Fable. The coordinated check verified GPT-5.6 Sol Medium, internal
+ID gpt-5.6-sol, and a successful native planning run. The observed remaining
+labels are Claude Opus 5.5 (claude-opus-5-5) and Claude Sonnet 5.5 High
+(claude-sonnet-5-5); all three roles have since executed for the 2026-10-21
+coverage pass (see below). The user's original Sonet spelling is preserved in
+docs/development-policy.md. Never silently substitute a role model or invent
+execution evidence; report an unavailable model as a specific blocker.
+
+Verified project agent definitions: use proofestra-planner
+(gpt-5.6-sol; observed UI GPT-5.6 Sol Medium) for planner/designer,
+proofestra-worker (claude-sonnet-5-5) for implementation, and
+proofestra-reviewer (claude-opus-5-5) for independent review/advice. Definitions
+live in .cursor/agents/.
+
+Role execution for the 2026-10-21 coverage pass, as observed by the operator in
+the native Cursor UI (model labels and parameter IDs; no silent fallback shown, no
+Fable retry): planner GPT-5.6 Sol Medium (`gpt-5.6-sol`) produced the plan; worker
+Claude Sonnet 5.5 High (`claude-sonnet-5-5`) implemented it with two pinned
+`proofestra-worker` delegates (a parser child's native header showed Claude Sonnet
+5.5); reviewer Claude Opus 5.5 1M Max Fast (`claude-opus-5-5`) reviewed
+independently without delegation. The review found no blocking defect and one
+MEDIUM test gap (a fake XHR that always emitted `abort`), which was corrected,
+A/B-proven and re-reviewed; no code or test blocker remains. This is evidence of
+the Cursor model runs, not of live application-provider behavior. Still check
+actual model identity each run; do not accept Cursor fallback as the requested
+model. Exact effort presets are not pinned by the plain model ID.
+
+Publication and subscriptions (DEV-03): agents never stage, commit, push, open a
+PR, merge or deploy; publication is a human-operator action performed after final
+verification, and any authorization for it lives outside this repository (no
+standing or per-task permission is recorded here). Subscription-backed tests use only officially supported,
+already-signed-in vendor surfaces: no paid API substitute, purchase, new
+credential/grant, persistent access, token/auth-file read or session-token reuse.
+Subscription quota is not API credit; cost is never $0. Codex execution is
+`unverified`/`tool_surface_unproven` for codex-cli 0.163.0 (ChatGPT-only
+authentication also unproven) and Antigravity is
+unverified/disabled; keep them fail-closed until fresh evidence changes the
+verification record (RLOG-021, DLOG-018).

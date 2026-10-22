@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist/server",
+    "rootDir": "src",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "jsx": "preserve",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "verbatimModuleSyntax": false,
+    "paths": {}
+  },
+  "include": ["src/server/**/*", "src/core/**/*", "src/providers/**/*", "src/storage/**/*", "src/shared/**/*"],
+  "exclude": ["node_modules", "dist", "src/web/**/*", "tests/**/*"]
+}

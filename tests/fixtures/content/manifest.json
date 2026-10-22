@@ -1,0 +1,181 @@
+{
+  "synthetic_only": true,
+  "no_user_files": true,
+  "encrypted_pdf_generation": "created",
+  "encrypted_zip_generation": "created",
+  "trusted_tool_checks": {
+    "single_pdf_marker": true,
+    "twenty_page_bound": true,
+    "raster_pdf_no_text": true,
+    "encrypted_pdf_password_required": true,
+    "encrypted_pdf_valid_with_fixture_password": true,
+    "actual_24_pages": true,
+    "encrypted_zip_flag": true
+  },
+  "fixtures": [
+    {
+      "path": "pdf/text-one-page.pdf",
+      "bytes": 643,
+      "pages": 1,
+      "expected_text_markers": [
+        "PDF_QUARTZ_ALPHA_2718"
+      ],
+      "expected_status": "text_extracted"
+    },
+    {
+      "path": "pdf/text-24-pages.pdf",
+      "bytes": 7736,
+      "pages": 24,
+      "expected_text_markers": [
+        "PDF_PAGE_01_MARKER",
+        "PDF_PAGE_20_MARKER"
+      ],
+      "expected_partial_at_20_pages": true,
+      "omitted_after_20": [
+        "PDF_PAGE_21_MARKER",
+        "PDF_PAGE_24_MARKER"
+      ]
+    },
+    {
+      "path": "pdf/raster-only.pdf",
+      "bytes": 971,
+      "pages": 1,
+      "expected_no_text": true,
+      "expected_status": "unsupported_or_explicit_no_text",
+      "image_only": true
+    },
+    {
+      "path": "pdf/malformed.pdf",
+      "bytes": 53,
+      "expected_status": "failed_or_unsupported",
+      "expected_no_success_claim": true
+    },
+    {
+      "path": "pdf/empty.pdf",
+      "bytes": 0,
+      "expected_status": "empty_or_none",
+      "expected_no_success_claim": true
+    },
+    {
+      "path": "pdf/password-protected.pdf",
+      "bytes": 2932,
+      "expected_status": "encrypted_or_unsupported",
+      "password": "fixture-password",
+      "expected_no_plaintext_without_password": true
+    },
+    {
+      "path": "zip/supported-mixed.zip",
+      "bytes": 1658,
+      "expected_text_markers": [
+        "ZIP_DIRECT_TEXT_LANTERN_31415",
+        "ZIP_CSV_CEDAR_2718",
+        "ZIP_JSON_KITE_1618",
+        "ZIP_SOURCE_NEVER_EXECUTED_5772"
+      ],
+      "expected_inventory_entries": 7,
+      "expected_skipped_no_recursion": [
+        "nested.zip",
+        "binary.bin"
+      ],
+      "optional_if_pdf_members_supported": "ZIP_INNER_PDF_OPTIONAL_1414",
+      "must_never_execute": "source.py",
+      "expected_partial": true
+    },
+    {
+      "path": "zip/nested-only.zip",
+      "bytes": 224,
+      "expected_inventory_entries": 1,
+      "expected_skipped_no_recursion": [
+        "nested.zip"
+      ],
+      "forbidden_nested_text": "ZIP_NESTED_DO_NOT_RECURSE_31415"
+    },
+    {
+      "path": "zip/empty.zip",
+      "bytes": 22,
+      "expected_inventory_entries": 0,
+      "expected_no_fabricated_text": true
+    },
+    {
+      "path": "zip/traversal.zip",
+      "bytes": 149,
+      "expected_reject_reason": "traversal"
+    },
+    {
+      "path": "zip/absolute.zip",
+      "bytes": 145,
+      "expected_reject_reason": "absolute_path"
+    },
+    {
+      "path": "zip/windows-absolute.zip",
+      "bytes": 149,
+      "expected_reject_reason": "absolute_path"
+    },
+    {
+      "path": "zip/duplicate-entry.zip",
+      "bytes": 227,
+      "expected_reject_reason": "duplicate_entry"
+    },
+    {
+      "path": "zip/symlink.zip",
+      "bytes": 124,
+      "expected_reject_reason": "symlink"
+    },
+    {
+      "path": "zip/high-ratio-small.zip",
+      "bytes": 394,
+      "expected_reject_reason": "compression_ratio",
+      "actual_inflated_bytes": 262144
+    },
+    {
+      "path": "zip/bad-crc.zip",
+      "bytes": 141,
+      "expected_reject_reason": "crc_mismatch"
+    },
+    {
+      "path": "zip/local-central-name-mismatch.zip",
+      "bytes": 141,
+      "expected_reject_reason": "local_central_name_mismatch"
+    },
+    {
+      "path": "zip/local-central-size-mismatch.zip",
+      "bytes": 141,
+      "expected_reject_reason": "local_central_size_mismatch"
+    },
+    {
+      "path": "zip/local-central-method-mismatch.zip",
+      "bytes": 141,
+      "expected_reject_reason": "local_central_method_mismatch"
+    },
+    {
+      "path": "zip/declared-inflated-limit.zip",
+      "bytes": 141,
+      "expected_reject_reason": "declared_size_or_ratio",
+      "actual_payload_bytes": 24,
+      "declared_inflated_bytes": 134217728
+    },
+    {
+      "path": "zip/multi-disk.zip",
+      "bytes": 141,
+      "expected_reject_reason": "multi_disk_unsupported"
+    },
+    {
+      "path": "zip/truncated.zip",
+      "bytes": 131,
+      "expected_reject_reason": "truncated"
+    },
+    {
+      "path": "zip/encrypted.zip",
+      "bytes": 253,
+      "expected_status": "encrypted_or_unsupported",
+      "password": "fixture-password",
+      "expected_no_plaintext_without_password": true
+    }
+  ],
+  "limits": [
+    "No OCR/transcription was performed",
+    "Office fixtures have a separate office/manifest.json",
+    "Expected statuses are semantic; exact public error code may vary",
+    "No provider or app calls were made"
+  ]
+}

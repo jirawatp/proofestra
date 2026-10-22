@@ -1,0 +1,340 @@
+{
+  "fixture_version": 1,
+  "source": "generated synthetic data only; no user files, speech, credentials, models or network",
+  "ffprobe_version": "7.1.1",
+  "probe_transport": "regular read-only fd0; protocol_whitelist=fd",
+  "native_candidate_note": "Capability construction candidate only. No live provider semantic understanding has been tested. Policy caps are app-specific; compare observed durations to final configured limits.",
+  "fixtures": [
+    {
+      "file": "valid-tone.wav",
+      "mime": "audio/wav",
+      "bytes": 32044,
+      "sha256": "21f9cd8e991503c028eb6f075ae7fab7989a1f1243c033224e4611e4d2dac67b",
+      "expected": {
+        "duration_range_seconds": [
+          0.99,
+          1.01
+        ],
+        "native_candidate": true,
+        "meaning": "440Hz tone only, no speech"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "pcm_s16le",
+              "codec_type": "audio",
+              "sample_rate": "16000",
+              "channels": 1,
+              "duration": "1.000000"
+            }
+          ],
+          "format": {
+            "format_name": "wav",
+            "duration": "1.000000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "valid-tone.mp3",
+      "mime": "audio/mpeg",
+      "bytes": 4544,
+      "sha256": "b94c239f11d8f5eb5ef5ea08c23cbf940de1c38fc220ed3729040e8d8193f5c1",
+      "expected": {
+        "duration_range_seconds": [
+          0.99,
+          1.2
+        ],
+        "native_candidate": true,
+        "meaning": "440Hz tone only, no speech"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "mp3",
+              "codec_type": "audio",
+              "sample_rate": "16000",
+              "channels": 1,
+              "duration": "1.080000"
+            }
+          ],
+          "format": {
+            "format_name": "mp3",
+            "duration": "1.080000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "valid-clip.mp4",
+      "mime": "video/mp4",
+      "bytes": 5990,
+      "sha256": "51e45515ab3574fe7c965755054503338b46b0eb6653c261442ffcfd0271a861",
+      "expected": {
+        "duration_range_seconds": [
+          0.99,
+          1.1
+        ],
+        "dimensions": [
+          160,
+          90
+        ],
+        "native_candidate": true,
+        "meaning": "blue frame +440Hz tone, no speech"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 160,
+              "height": 90,
+              "duration": "1.000000"
+            },
+            {
+              "index": 1,
+              "codec_name": "aac",
+              "codec_type": "audio",
+              "sample_rate": "16000",
+              "channels": 1,
+              "duration": "1.000000"
+            }
+          ],
+          "format": {
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+            "duration": "1.000000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "valid-clip.webm",
+      "mime": "video/webm",
+      "bytes": 3491,
+      "sha256": "11f4b34e09e9ad31662614a9d65befea54afdd23e38212c385626bb09c7d19f5",
+      "expected": {
+        "duration_range_seconds": [
+          0.99,
+          1.1
+        ],
+        "dimensions": [
+          160,
+          90
+        ],
+        "native_candidate": true,
+        "meaning": "blue frame +440Hz tone, no speech"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "vp9",
+              "codec_type": "video",
+              "width": 160,
+              "height": 90
+            },
+            {
+              "index": 1,
+              "codec_name": "opus",
+              "codec_type": "audio",
+              "sample_rate": "48000",
+              "channels": 1
+            }
+          ],
+          "format": {
+            "format_name": "matroska,webm",
+            "duration": "1.008000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "unknown-duration.webm",
+      "mime": "video/webm",
+      "bytes": 532,
+      "sha256": "93fe7a2799e87061f1f6c6117c79ad04b813e6e15052997788a1b05241fb8abb",
+      "expected": {
+        "native_candidate": false,
+        "reason": "live-style WebM has no declared duration; metadata must be refused rather than guessed"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "vp9",
+              "codec_type": "video",
+              "width": 64,
+              "height": 64
+            }
+          ],
+          "format": {
+            "format_name": "matroska,webm"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "excessive-duration-121s.mp3",
+      "mime": "audio/mpeg",
+      "bytes": 121436,
+      "sha256": "5547f5f11320145b3cc145e196df40ea9bbf835db34be2a669f826056b9d18af",
+      "expected": {
+        "duration_range_seconds": [
+          121,
+          122
+        ],
+        "native_candidate": false,
+        "reason": "exceeds a120second audio policy cap; compressed silence is not a byte-derived duration bound"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "mp3",
+              "codec_type": "audio",
+              "sample_rate": "8000",
+              "channels": 1,
+              "duration": "121.176000"
+            }
+          ],
+          "format": {
+            "format_name": "mp3",
+            "duration": "121.176000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "excessive-duration-121s.mp4",
+      "mime": "video/mp4",
+      "bytes": 3149,
+      "sha256": "8f969929a7e73738396c327ccac54e519977fe6d8782d8fd80c6bc56eaa3a8a2",
+      "expected": {
+        "duration_range_seconds": [
+          121,
+          121.01
+        ],
+        "dimensions": [
+          32,
+          32
+        ],
+        "native_candidate": false,
+        "reason": "exceeds a120second or stricter video cap despite tiny compressed bytes"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "h264",
+              "codec_type": "video",
+              "width": 32,
+              "height": 32,
+              "duration": "121.000000"
+            }
+          ],
+          "format": {
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+            "duration": "121.000000"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "corrupt-truncated.mp4",
+      "mime": "video/mp4",
+      "bytes": 40,
+      "sha256": "8faeceb1ba6dfe85696b379112d8108f1d8afa89a717dfd3aef40fc62d1427e5",
+      "expected": {
+        "native_candidate": false,
+        "reason": "truncated moov; probe failure/unknown metadata must never route native"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [],
+          "format": {
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2"
+          }
+        },
+        "diagnostic": ""
+      }
+    },
+    {
+      "file": "huge-dimensions-header-only.mp4",
+      "mime": "video/mp4",
+      "bytes": 579,
+      "sha256": "790370c143dc2c3b2f38fa21cf3f7cf984d437f8243ba874fc169344b56c3165",
+      "expected": {
+        "native_candidate": false,
+        "never_render_or_decode": true,
+        "declared_dimensions": [
+          65535,
+          65535
+        ],
+        "reason": "hostile dimensions in no-packet header; probe-only dimension/resource refusal"
+      },
+      "probe": {
+        "exit": 0,
+        "metadata": {
+          "programs": [],
+          "stream_groups": [],
+          "streams": [
+            {
+              "index": 0,
+              "codec_name": "mjpeg",
+              "codec_type": "video",
+              "width": 0,
+              "height": 0,
+              "duration": "1.000000"
+            }
+          ],
+          "format": {
+            "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+            "duration": "1.000000"
+          }
+        },
+        "diagnostic": "[mjpeg @ 0xADDR] [IMGUTILS @ 0xADDR] Picture size 65535x65535 is invalid\n"
+      }
+    }
+  ]
+}

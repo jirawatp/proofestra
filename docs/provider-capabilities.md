@@ -56,6 +56,23 @@ Grounding citations and successful retrieval remain separate from a checked clai
 | Claude Agent SDK / Claude Code | Local Claude Code subprocess, tools/MCP, permission hooks, subagents including documented nesting | Exact SDK version and permission ordering, native tree limits, whole-tree usage, interrupt behavior, and supported third-party authentication. |
 | Gemini CLI | Headless events, workspace/shell/web/MCP tools, extensions, configured remote agents, and native subagents | Headless policy, allowed tools, auth, cancellation, usage visibility; native children cannot themselves delegate. |
 
+**Implementation status (2026-10-22).** A fail-closed Codex CLI backend using the
+existing vendor-managed ChatGPT login is implemented and tested against fake
+processes only (DLOG-018, PR-08..PR-13). Against the installed codex-cli 0.163.0
+execution is **unverified/blocked**: `unified_exec` stays enabled under
+`--disable unified_exec`, `apply_patch_tool_type=freeform` and
+`tool_mode=code_mode_only` are model-catalog properties with no per-invocation
+switch, and web-search/MCP effects cannot be observed without an inference
+request. ChatGPT-only authentication is also unproven: dropping inherited API
+variables does not stop a cached API-key login from billing the API, so each job is
+gated on the vendor's `login status` reporting ChatGPT and passes
+`forced_login_method="chatgpt"`, but neither was exercised against the signed-in
+session. No general subscription-to-API credential bridge is planned. Antigravity
+(`agy` 1.1.5) is unverified/disabled: no machine-readable output, tool-deny flags
+or auth/status command in the installed help, the AI-credit overage state is
+unverified, and the vendor FAQ restricts third-party use of the login. ChatGPT or
+Google subscription quota is not API credit and cost is never reported as $0.
+
 For Codex, use [SDK guidance](https://learn.chatgpt.com/docs/codex-sdk),
 [non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode),
 and [authentication](https://learn.chatgpt.com/docs/auth). Current SDK guidance

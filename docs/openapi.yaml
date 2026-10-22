@@ -2,24 +2,38 @@ openapi: 3.1.1
 info:
   title: Proofestra local API
   version: 0.1.0-draft
-  summary: Proposed extensible personal API; no runtime, tool executor or endpoint is implemented.
-  description: Draft same-origin personal UI contract. Provider IDs/catalogs are extensible through validated adapter
-    manifests; the initial three targets are not a fixed enum. Profiles identify execution backends and versioned
-    capability/control metadata. No provider SDK, CLI, API or tool execution is implemented. Validate Host/session/CSRF/Origin,
-    disable CORS, enforce a 128 KiB body maximum, and use no-store plus X-Request-ID. Live work requires explicit
-    authorized submission. Personal numerical defaults are not product ceilings; finite runtime-policy ceilings
-    govern admission. Observable harness invocations are not opaque internal model/tool counts. No universal compatibility,
-    guaranteed cancellation, billing or accuracy claims. Confirmed design scope includes provider API tools, local
-    agent applications, SDKs/CLIs, MCP tools and hosted agent services. Compatibility/implementation are staged
-    per adapter; none is implied live by inclusion in scope. Shared skills/plugins/custom MCP registrations project
-    into eligible profiles through one harness registry. Metadata-only discovery contains no secrets or installation
-    authority; frozen versions/digests, grants and root-branch isolation remain enforced.
+  summary: Implemented v1 runtime contract (operations marked implemented_v1) plus a labelled design draft (operations
+    marked design_only, which the server does not serve).
+  description: |
+    READ THIS FIRST. Every operation carries `x-proofestra-status`.
+
+    - `implemented_v1`: served by the current server. Responses of these operations are validated against this
+      document by `tests/integration/openapi_contract.test.ts` using real responses (mock runs, a fake native
+      backend, an injected live wire, attachments, errors and SSE frames). That test is a contract check, not
+      evidence that a live provider integration works.
+    - `design_only`: NOT served (`/extensions`, `/capabilities`, `/runs/{run_id}/tool-executions`,
+      `/runs/{run_id}/tool-approvals`). Their schemas (tool executions, route decisions, approvals, extension
+      registrations, spawn decisions, shared skills/plugins/MCP) describe intended behavior kept for traceability.
+      No tool executor, extension registry or approval flow exists, and nothing here claims universal compatibility.
+
+    Schemas shared by both halves (for example `RunSnapshot`) list as `required` only what the server returns today;
+    design-only members are optional and marked in their descriptions. The current attachment contract is also
+    described in docs/api.md.
+
+    Runtime behavior common to implemented operations: same-origin personal UI; Host/session/CSRF/Origin validation,
+    no CORS, a 128 KiB JSON body maximum, `no-store` plus `X-Request-ID`. Live work requires an explicit, authorized
+    submission and server-enabled live mode; the default is mock. Native CLI backends (`native_cli`, for example
+    `codex-local-cli`) are fail-closed: `readiness` is `unverified` and runs are refused unless every required
+    control is proven (see `NativeBackendStatus`). Observable harness invocations are not opaque internal model/tool
+    counts; native subscription usage is reported as unknown-cost, never `$0`. Cancellation is best effort: a local
+    stop of a native job is not proof that remote or descendant work stopped.
   license: {name: Apache License 2.0, identifier: Apache-2.0}
 servers:
 - {url: 'http://127.0.0.1:3000/api/v1'}
 security:
 - cookieAuth: []
 tags:
+- {name: Attachments}
 - {name: Session}
 - {name: Providers}
 - {name: Conversations}
@@ -30,6 +44,7 @@ paths:
     get:
       tags: [Session]
       operationId: bootstrapSession
+      x-proofestra-status: implemented_v1
       summary: Bootstrap a local browser session without provider calls
       security: []
       description: Validate Host even here. Refresh may replace the session without losing saved conversations.
@@ -51,6 +66,7 @@ paths:
     get:
       tags: [Providers]
       operationId: listProviders
+      x-proofestra-status: implemented_v1
       summary: Page registered providers and configured model profiles
       description: Extensible validated adapter registry, initially targeting OpenAI/Anthropic/Gemini. Provider
         IDs are open registered strings; multiple profiles/backends per provider. No credentials, model discovery,
@@ -74,6 +90,7 @@ paths:
     get:
       tags: [Conversations]
       operationId: listConversations
+      x-proofestra-status: implemented_v1
       summary: Page conversations by newest update, with UUID tie-break
       parameters:
       - {$ref: '#/components/parameters/Cursor'}
@@ -93,6 +110,7 @@ paths:
     post:
       tags: [Conversations]
       operationId: createConversation
+      x-proofestra-status: implemented_v1
       summary: Create a blank conversation
       security:
       - cookieAuth: []
@@ -130,6 +148,7 @@ paths:
     get:
       tags: [Conversations]
       operationId: getConversation
+      x-proofestra-status: implemented_v1
       summary: Read conversation metadata
       responses:
         '200':
@@ -146,6 +165,7 @@ paths:
     delete:
       tags: [Conversations]
       operationId: deleteConversation
+      x-proofestra-status: implemented_v1
       summary: Delete a conversation and its associated local records
       description: Returns 204 even for an absent valid UUID. Any active run in this conversation blocks deletion.
         Logical deletion is not forensic erasure of backups, SQLite pages, exports, or provider data.
@@ -166,6 +186,7 @@ paths:
     get:
       tags: [Conversations]
       operationId: listMessages
+      x-proofestra-status: implemented_v1
       summary: Page messages in stable chronological sequence
       parameters:
       - {$ref: '#/components/parameters/Cursor'}
@@ -186,9 +207,28 @@ paths:
   /conversations/{conversation_id}/runs:
     parameters:
     - {$ref: '#/components/parameters/ConversationId'}
+    get:
+      tags: [Runs]
+      operationId: listConversationRuns
+      x-proofestra-status: implemented_v1
+      summary: List every run of a conversation with the active run ID
+      description: Implemented v1 and not paginated. Read-only; never starts or resumes work.
+      responses:
+        '200':
+          description: Run snapshots and the single active run, if any.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/RunList'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
     post:
       tags: [Runs]
       operationId: createRun
+      x-proofestra-status: implemented_v1
       summary: Atomically save prompt and configuration and enqueue one run
       description: Resolve durable idempotency before the single global active-run guard, including waiting/approval
         states. Freeze profile/backend/capability/runtime-policy/grant versions and safe context atomically with
@@ -308,6 +348,7 @@ paths:
     get:
       tags: [Runs]
       operationId: getRun
+      x-proofestra-status: implemented_v1
       summary: Read a run snapshot without starting or resuming work
       description: Read current lineage, observable accounting, external status and first-page tool records/cursor.
         Tool/provider denials are run data, not HTTP 500. Does not execute/resume work; no raw credentials/vendor/private
@@ -323,6 +364,7 @@ paths:
     put:
       tags: [Runs]
       operationId: cancelRun
+      x-proofestra-status: implemented_v1
       summary: Request cancellation and return the current snapshot
       description: Idempotent local workflow cancellation across descendants/tools/continuations/native jobs. Completion
         may win. Stop new scheduling; request remote stop, never undo completed side effects. If remote completion
@@ -346,10 +388,10 @@ paths:
     get:
       tags: [Runs]
       operationId: streamRunEvents
+      x-proofestra-status: implemented_v1
       summary: Replay durable bounded stage events using SSE
       description: Read-only persisted run-scoped SSE replay; disconnect does not cancel/duplicate work. Last-Event-ID
-        absent replays after zero; malformed/negative/future IDs return 400. Event name equals EventEnvelope.type.
-        Includes lineage, routes, approvals, tool results and scoped usage; no raw token stream/private reasoning.
+        absent replays after zero; malformed/negative/future IDs return 400. Event name equals the envelope type. Implemented v1 frames are RuntimeEventEnvelope (run.created, run.updated, run.terminal, step.updated); the richer lineage/route/approval/tool frames of EventEnvelope are design scope and are not emitted. No raw token stream/private reasoning.
         Close after workflow terminal event; later external reconciliation is available by snapshot/tool pages and
         a fresh explicit replay. Return 204 when cursor is already at the latest terminal sequence. Never auto-resume
         or fake remote cancellation. If a terminal run has newer reconciliation records after the cursor, replay
@@ -396,6 +438,7 @@ paths:
     get:
       tags: [Conversations]
       operationId: exportConversation
+      x-proofestra-status: implemented_v1
       summary: Export portable version-1 JSON after all conversation runs terminate
       description: Full logical version-1 export includes every terminal run tree, route/tool/approval/source record
         and scoped usage, not first-page previews. Contains user/task text; disclose before download. Exclude credentials/cookies/CSRF/raw
@@ -417,12 +460,151 @@ paths:
         '404': {$ref: '#/components/responses/Error'}
         '409': {$ref: '#/components/responses/Error'}
         default: {$ref: '#/components/responses/Error'}
+  /attachments/policy:
+    get:
+      tags: [Attachments]
+      operationId: getAttachmentPolicy
+      x-proofestra-status: implemented_v1
+      summary: Read the current attachment caps
+      responses:
+        '200':
+          description: Current caps.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttachmentPolicy'}
+        '401': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /conversations/{conversation_id}/attachments:
+    parameters:
+    - {$ref: '#/components/parameters/ConversationId'}
+    get:
+      tags: [Attachments]
+      operationId: listConversationAttachments
+      x-proofestra-status: implemented_v1
+      summary: List attachments of a conversation (drafts and sent)
+      responses:
+        '200':
+          description: Attachment records, oldest first.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttachmentList'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+    post:
+      tags: [Attachments]
+      operationId: uploadAttachment
+      x-proofestra-status: implemented_v1
+      summary: Upload one file (multipart) and process it locally
+      description: One `file` part; bytes are streamed to the local store, sniffed, bounded-parsed and never sent to a
+        provider until a run references the attachment. Errors include 400 validation_failed/too_many_files, 404, 409
+        attachment_limit/attachment_removed, 413 attachment_limit, 415, 507 attachment_quota. See docs/api.md.
+      security:
+      - cookieAuth: []
+        csrfToken: []
+      parameters:
+      - {$ref: '#/components/parameters/Origin'}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: {type: string, format: binary}
+      responses:
+        '201':
+          description: Processed attachment record.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AttachmentUploadResult'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        '413': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /attachments/{attachment_id}:
+    parameters:
+    - {name: attachment_id, in: path, required: true, schema: {type: string, format: uuid}}
+    delete:
+      tags: [Attachments]
+      operationId: deleteAttachment
+      x-proofestra-status: implemented_v1
+      summary: Delete an unbound attachment
+      description: 204 on success; 404 unknown id; 409 attachment_bound once sent. An in-flight upload is aborted and its
+        own request receives 409 attachment_removed.
+      security:
+      - cookieAuth: []
+        csrfToken: []
+      parameters:
+      - {$ref: '#/components/parameters/Origin'}
+      responses:
+        '204': {$ref: '#/components/responses/NoContent'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /attachments/{attachment_id}/preview:
+    parameters:
+    - {name: attachment_id, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [Attachments]
+      operationId: previewAttachment
+      x-proofestra-status: implemented_v1
+      summary: Inline-safe preview bytes (sandboxed CSP; active types are served as text/plain or attachment)
+      responses:
+        '200':
+          description: Raw bytes with nosniff and a sandbox CSP.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            '*/*':
+              schema: {type: string, format: binary}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
+  /attachments/{attachment_id}/download:
+    parameters:
+    - {name: attachment_id, in: path, required: true, schema: {type: string, format: uuid}}
+    get:
+      tags: [Attachments]
+      operationId: downloadAttachment
+      x-proofestra-status: implemented_v1
+      summary: Download the exact stored bytes as an attachment
+      responses:
+        '200':
+          description: Raw bytes with Content-Disposition attachment, nosniff and a sandbox CSP.
+          headers:
+            Cache-Control: {$ref: '#/components/headers/NoStore'}
+            X-Request-ID: {$ref: '#/components/headers/RequestId'}
+          content:
+            '*/*':
+              schema: {type: string, format: binary}
+        '401': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        default: {$ref: '#/components/responses/Error'}
   /extensions:
     get:
       tags: [Extensions]
       operationId: listExtensions
+      x-proofestra-status: design_only
       summary: Page shared skill, plugin and custom MCP registration metadata
-      description: Read-only authorized cached catalog. Registration remains operator configuration; no install/admin
+      description: DESIGN ONLY, NOT SERVED (404 unknown API path). Read-only authorized cached catalog. Registration remains operator configuration; no install/admin
         endpoint or model permission to register/enable/grant. No package fetch, MCP discovery/connection, credential
         access, launch, script execution or inference. Connected profiles reuse one harness registration through
         compatible projections.
@@ -458,8 +640,9 @@ paths:
     get:
       tags: [Providers]
       operationId: listCapabilities
+      x-proofestra-status: design_only
       summary: Page compatible tool/profile/backend metadata without executing tools
-      description: Filter by registered metadata. Compatibility evidence/readiness/auth/grants/egress/observability
+      description: DESIGN ONLY, NOT SERVED (404 unknown API path). Filter by registered metadata. Compatibility evidence/readiness/auth/grants/egress/observability
         are separate; no claim of universal tool/model/mode support. Cursors bind catalog version and filters. extension_id
         filters shared registration tools without duplicating identity per provider. Optional server-derived provenance
         identifies the pinned contribution; catalog reads never load packages, read secrets or discover MCP tools.
@@ -488,6 +671,7 @@ paths:
     get:
       tags: [Providers]
       operationId: getRuntimePolicy
+      x-proofestra-status: implemented_v1
       summary: Read versioned personal defaults and finite deployment ceilings
       description: No mutation or provider calls. Requests cannot raise server ceilings; snapshot the effective
         version and reject stale/incompatible admission.
@@ -508,8 +692,9 @@ paths:
     get:
       tags: [Runs]
       operationId: listToolExecutions
+      x-proofestra-status: design_only
       summary: Page all tool executions and their route/approval records
-      description: Read-only stable execution sequence; updated status may change while paging. No silent omission
+      description: DESIGN ONLY, NOT SERVED (404 unknown API path). Read-only stable execution sequence; updated status may change while paging. No silent omission
         from full exports; no tool execution/resume. Cursors are run scoped.
       parameters:
       - {$ref: '#/components/parameters/Cursor'}
@@ -533,8 +718,9 @@ paths:
     post:
       tags: [Runs]
       operationId: decideToolApproval
+      x-proofestra-status: design_only
       summary: Record human approval or denial of one pending exact action
-      description: Verify session/CSRF/Origin, pending record/run/caller/tool/profile/backend/task/policy bindings,
+      description: DESIGN ONLY, NOT SERVED (404 unknown API path). Verify session/CSRF/Origin, pending record/run/caller/tool/profile/backend/task/policy bindings,
         exact argument digest, expiry and current run state. Same key/payload replays; changed decision/payload
         or stale/mismatched action returns 409. Approval never expands frozen allowlists or bypasses compatibility/budget.
         Consent is not execution. Models cannot invoke this browser-authorized operation or mint grants. Approval
@@ -587,8 +773,8 @@ components:
       schema: {type: string, const: no-store}
     RequestId:
       required: true
-      description: Server-generated correlation UUID; no sensitive content.
-      schema: {type: string, format: uuid}
+      description: Server-generated opaque correlation ID (v1 emits a per-process sequence such as req-1, not a UUID); no sensitive content.
+      schema: {type: string, minLength: 1, maxLength: 100}
     Location:
       description: Same-origin relative URI identifying the resource, including on idempotent replay.
       schema: {type: string, format: uri-reference}
@@ -765,13 +951,109 @@ components:
           minItems: 0
       description: Operator-registered adapter with configured profiles. Profile IDs are globally unique; profile
         counts are bounded by deployment policy, not a product-wide constant.
+    NativeBackendStatus:
+      type: object
+      additionalProperties: false
+      required: [backend_id, provider, kind, readiness, reason_code, credentials, billing, tool_surface,
+        unproven_controls]
+      properties:
+        backend_id:
+          type: string
+          enum: [codex-local-cli, antigravity-local-cli]
+        provider: {$ref: '#/components/schemas/Provider'}
+        kind: {type: string, const: native_cli}
+        readiness:
+          type: string
+          enum: [configured, missing, disabled, unverified]
+        reason_code:
+          type: string
+          enum: [live_disabled, not_enabled, model_not_pinned, executable_not_found, tool_surface_unproven,
+            protocol_unverified, auth_mode_unproven, ready_auth_checked_per_job]
+          description: 'Fixed ladder: live_disabled, not_enabled, model_not_pinned, executable_not_found,
+            tool_surface_unproven, auth_mode_unproven, then ready_auth_checked_per_job (the only configured state;
+            the ChatGPT-only login gate then runs before every job). protocol_unverified is the permanent
+            Antigravity state.'
+        credentials: {type: string, const: vendor_managed}
+        billing: {type: string, const: subscription_quota_cost_unknown}
+        tool_surface:
+          type: string
+          enum: [proven_off, unproven]
+        unproven_controls:
+          type: array
+          items: {type: string, maxLength: 100, minLength: 1}
+          uniqueItems: true
+          description: Stable control ids that could not be proven for the installed CLI version.
+      description: Sanitized native CLI backend state. The vendor owns the login; Proofestra never reads, stores or
+        forwards it. Only a backend whose every control is proven reaches `configured`; as of codex-cli 0.163.0
+        Codex is `unverified` and Antigravity is `unverified`/`protocol_unverified`, so Live runs on their profiles are
+        refused. Contains no path, CLI version, login state or vendor text. Subscription quota is not API credit and
+        cost is never reported as $0.
+    NativeBackendFreeze:
+      type: object
+      additionalProperties: false
+      required: [backend_id, provider, model_id, policy_id, cli_version, tool_surface, permissions, accounting,
+        max_native_job_seconds]
+      properties:
+        backend_id: {$ref: '#/components/schemas/BackendId'}
+        provider: {$ref: '#/components/schemas/Provider'}
+        model_id: {type: string, maxLength: 200, minLength: 1}
+        policy_id: {type: string, maxLength: 100, minLength: 1}
+        cli_version: {type: string, maxLength: 100, minLength: 1}
+        tool_surface: {type: string, const: proven_off}
+        permissions:
+          type: object
+          additionalProperties: false
+          required: [sandbox, approvals, network_tools, cwd, env, persistence]
+          properties:
+            sandbox: {type: string, const: read-only}
+            approvals: {type: string, const: never}
+            network_tools: {type: string, const: 'off'}
+            cwd: {type: string, const: empty_scratch}
+            env: {type: string, const: credential_free}
+            persistence: {type: string, const: ephemeral}
+        accounting:
+          type: object
+          additionalProperties: false
+          required: [billing, usage, internal_usage_visibility]
+          properties:
+            billing: {type: string, const: subscription_quota_cost_unknown}
+            usage: {type: string, const: vendor_reported_or_unknown}
+            internal_usage_visibility: {type: string, const: opaque}
+        max_native_job_seconds: {type: integer, minimum: 1}
+      description: Native policy frozen into a run at admission (one entry per backend and model). Dispatch refuses a
+        run whose frozen policy is missing or does not match the agent's backend and model.
     ProviderList:
       type: object
       additionalProperties: false
-      required: [live_enabled, catalog_version, items, next_cursor]
+      required: [live_enabled, capabilities, native_backends, catalog_version, catalog_source, items, next_cursor]
       properties:
         live_enabled: {type: boolean}
+        capabilities:
+          type: object
+          additionalProperties: false
+          required: [pdf_text_extraction, media_metadata_probe]
+          properties:
+            pdf_text_extraction: {type: boolean}
+            media_metadata_probe: {type: boolean}
+          description: Booleans only, saying whether the bounded local PDF/media parsers are installed. Never a path,
+            version or environment value.
+        native_backends:
+          type: array
+          items: {$ref: '#/components/schemas/NativeBackendStatus'}
+          minItems: 0
+          description: Sanitized state of each native CLI backend (fixed codes only). Computed from configuration and
+            an executable existence check; no CLI is launched, no login is read, no provider is called.
         catalog_version: {type: string, maxLength: 100, minLength: 1}
+        catalog_source:
+          type: object
+          additionalProperties: false
+          required: [source, file_configured]
+          properties:
+            source:
+              type: string
+              enum: [built_in, file_replace, file_append]
+            file_configured: {type: boolean}
+          description: Where the profile catalog came from; never the profiles-file path.
         items:
           type: array
           items: {$ref: '#/components/schemas/ProviderConfig'}
@@ -784,7 +1066,19 @@ components:
         exist or every listed tool is implemented.
       examples:
       - live_enabled: false
+        capabilities: {pdf_text_extraction: false, media_metadata_probe: false}
+        native_backends:
+        - backend_id: codex-local-cli
+          provider: openai
+          kind: native_cli
+          readiness: unverified
+          reason_code: tool_surface_unproven
+          credentials: vendor_managed
+          billing: subscription_quota_cost_unknown
+          tool_surface: unproven
+          unproven_controls: [unified_exec_not_disableable, apply_patch_not_removable, chatgpt_only_auth_unenforced]
         catalog_version: illustrative-v1
+        catalog_source: {source: built_in, file_configured: false}
         items:
         - provider: research-lab
           label: Illustrative custom provider
@@ -994,8 +1288,7 @@ components:
     AgentSnapshot:
       type: object
       additionalProperties: false
-      required: [agent_id, name, profile_id, role, provider, model_id, safe_input_tokens, delegation_capability,
-        parent_agent_id, root_agent_id, depth, task, child_agent_ids, status, execution_backend_id]
+      required: [agent_id, name, profile_id, role, provider, model_id, safe_input_tokens, parent_agent_id, root_agent_id, depth, task, child_agent_ids, status, execution_backend_id]
       properties:
         agent_id: {type: string, format: uuid}
         name: {type: string, minLength: 1, maxLength: 80}
@@ -1006,7 +1299,10 @@ components:
         provider: {$ref: '#/components/schemas/Provider'}
         model_id: {type: string, minLength: 1, maxLength: 200}
         safe_input_tokens: {type: integer, minimum: 1}
-        delegation_capability: {$ref: '#/components/schemas/DelegationCapability'}
+        delegation_capability:
+          allOf: [{$ref: '#/components/schemas/DelegationCapability'}]
+          x-proofestra-status: design_only
+          description: Design scope. Not returned by the v1 server.
         parent_agent_id:
           type: [string, 'null']
           format: uuid
@@ -1051,10 +1347,149 @@ components:
           items: {type: string, format: uuid}
         input_fit_status: {type: string, const: accepted}
         notice: {type: string, maxLength: 1000}
+        attachments:
+          type: array
+          description: Frozen metadata-only projection of the attachments on the included messages, in message order
+            (implemented v1). Omitted when the run has none.
+          items: {$ref: '#/components/schemas/AttachmentRef'}
+        attachment_coverage:
+          type: array
+          description: Per root agent, how each attachment is routed at admission (implemented v1). A route is not
+            a claim the model understood the file.
+          items: {$ref: '#/components/schemas/AttachmentCoverage'}
       description: Frozen all visible history plus current prompt; records the exact included message IDs. Fit is
         a conservative local estimate, not guaranteed vendor counting. No hidden per-provider trimming. Children
         reuse this history plus scoped task/authorized branch artifacts; drafting branches cannot see current peer-root
         drafts. Recheck child/continuation capacity before dispatch.
+    AttachmentKind:
+      type: string
+      enum: [image, pdf, audio, video, text, archive, document, binary]
+    AttachmentRef:
+      type: object
+      additionalProperties: false
+      required: [id, sanitized_display_name, sniffed_mime, kind, byte_size, content_sha256, extraction_status,
+        extraction_coverage]
+      description: Metadata-only attachment reference (implemented v1). No bytes, storage key or path.
+      properties:
+        id: {type: string, format: uuid}
+        sanitized_display_name: {type: string}
+        sniffed_mime: {type: string}
+        kind: {$ref: '#/components/schemas/AttachmentKind'}
+        byte_size: {type: integer, minimum: 0}
+        content_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        extraction_status: {type: string, enum: [none, pending, text_extracted, truncated, encrypted, unsupported, failed]}
+        extraction_coverage:
+          type: object
+          additionalProperties: false
+          required: [extracted_chars, truncated, label]
+          properties:
+            extracted_chars: {type: integer, minimum: 0}
+            truncated: {type: boolean}
+            label: {type: string}
+        sniffed_width: {type: [integer, 'null']}
+        sniffed_height: {type: [integer, 'null']}
+        sniffed_pdf_pages: {type: [integer, 'null']}
+        sniffed_media_duration_ms: {type: [integer, 'null']}
+        sniffed_media_streams_json: {type: [string, 'null']}
+        validated_media_format: {type: [string, 'null']}
+        normalized_media_mime: {type: [string, 'null']}
+    Attachment:
+      type: object
+      additionalProperties: false
+      required: [id, sanitized_display_name, sniffed_mime, kind, byte_size, content_sha256, extraction_status,
+        extraction_coverage, conversation_id, state, created_at, bound_at, failure]
+      description: Full attachment record returned by upload and list (implemented v1). Every AttachmentRef field plus
+        lifecycle fields. Kept as one closed object (not allOf) so that unknown fields are rejected.
+      properties:
+        id: {type: string, format: uuid}
+        sanitized_display_name: {type: string}
+        sniffed_mime: {type: string}
+        kind: {$ref: '#/components/schemas/AttachmentKind'}
+        byte_size: {type: integer, minimum: 0}
+        content_sha256: {type: string, pattern: '^[0-9a-f]{64}$'}
+        extraction_status: {type: string, enum: [none, pending, text_extracted, truncated, encrypted, unsupported, failed]}
+        extraction_coverage:
+          type: object
+          additionalProperties: false
+          required: [extracted_chars, truncated, label]
+          properties:
+            extracted_chars: {type: integer, minimum: 0}
+            truncated: {type: boolean}
+            label: {type: string}
+        sniffed_width: {type: [integer, 'null']}
+        sniffed_height: {type: [integer, 'null']}
+        sniffed_pdf_pages: {type: [integer, 'null']}
+        sniffed_media_duration_ms: {type: [integer, 'null']}
+        sniffed_media_streams_json: {type: [string, 'null']}
+        validated_media_format: {type: [string, 'null']}
+        normalized_media_mime: {type: [string, 'null']}
+        conversation_id: {type: string, format: uuid}
+        state: {type: string, enum: [uploading, ready, failed, bound]}
+        created_at: {type: string, format: date-time}
+        bound_at: {type: [string, 'null'], format: date-time}
+        failure:
+          oneOf:
+          - type: 'null'
+          - type: object
+            additionalProperties: false
+            required: [code, message]
+            properties:
+              code: {type: string}
+              message: {type: string}
+    AttachmentUploadResult:
+      type: object
+      additionalProperties: false
+      required: [attachment]
+      properties:
+        attachment: {$ref: '#/components/schemas/Attachment'}
+    AttachmentList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/Attachment'}
+    AttachmentPolicy:
+      type: object
+      additionalProperties: false
+      required: [policy]
+      description: Current attachment caps advertised to the UI (implemented v1). Native-route caps are conservative
+        local limits, not vendor guarantees.
+      properties:
+        policy:
+          type: object
+          additionalProperties: {type: integer, minimum: 0}
+          required: [max_files_per_turn, max_file_bytes, max_composer_bytes, max_store_bytes, max_extracted_chars]
+    AttachmentCoverage:
+      type: object
+      additionalProperties: false
+      required: [agent_id, profile_id, provider, routes, aggregate_note]
+      properties:
+        agent_id: {type: string, format: uuid}
+        profile_id: {type: string}
+        provider: {$ref: '#/components/schemas/Provider'}
+        aggregate_note: {type: string}
+        routes:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [attachment_id, route, reason]
+            properties:
+              attachment_id: {type: string, format: uuid}
+              route: {type: string, enum: [native_image, native_pdf, native_audio, native_video, extracted_text, attachment_only]}
+              reason: {type: string}
+    RunList:
+      type: object
+      additionalProperties: false
+      required: [items, active_run_id]
+      description: All runs of a conversation, oldest first as stored (implemented v1; not paginated).
+      properties:
+        items:
+          type: array
+          items: {$ref: '#/components/schemas/RunSnapshot'}
+        active_run_id: {type: [string, 'null'], format: uuid}
     Usage:
       type: object
       additionalProperties: false
@@ -1065,6 +1500,12 @@ components:
         harness_invocations: {type: integer, minimum: 0}
         tool_operations_observed: {type: integer, minimum: 0}
         native_jobs_started: {type: integer, minimum: 0}
+        consumed_output_tokens:
+          type: integer
+          minimum: 0
+          description: Conservative numeric ledger used for budget math (reported output when known, otherwise the
+            full per-call reservation; a failed dispatched job is charged at least its reservation, plus any reported
+            excess over it). Not a billing figure.
         internal_usage_visibility:
           type: string
           enum: [complete, partial, opaque, unknown]
@@ -1165,8 +1606,7 @@ components:
     StepSnapshot:
       type: object
       additionalProperties: false
-      required: [step_id, agent_id, stage, provider, status, attempts, invocations, output, findings, sources, usage,
-        failure]
+      required: [step_id, agent_id, stage, provider, status, attempts, invocations, output, findings, usage, failure]
       properties:
         step_id: {type: string, format: uuid}
         agent_id: {type: string, format: uuid}
@@ -1189,6 +1629,7 @@ components:
           minItems: 0
           maxItems: 20
         sources:
+          x-proofestra-status: design_only
           type: array
           items: {$ref: '#/components/schemas/Source'}
           minItems: 0
@@ -1205,11 +1646,7 @@ components:
     RunSnapshot:
       type: object
       additionalProperties: false
-      required: [id, conversation_id, user_message_id, mode, execution_mode, status, root_agent_ids, agents, synthesizer_agent_id,
-        delegation, context, prompt_version, limits, base_planned_calls, steps, spawn_decisions, final_answer, presentation,
-        limitations, usage, created_at, finished_at, last_event_sequence, review_topology, runtime_policy_version,
-        catalog_version, tool_policy, tool_executions, tool_executions_next_cursor, external_work_status, extension_refs,
-        extension_activations]
+      required: [id, conversation_id, user_message_id, mode, execution_mode, status, root_agent_ids, agents, synthesizer_agent_id, delegation, context, prompt_version, limits, base_planned_calls, steps, final_answer, presentation, limitations, usage, created_at, finished_at, last_event_sequence, review_topology, runtime_policy_version, catalog_version, tool_policy, external_work_status]
       properties:
         id: {type: string, format: uuid}
         conversation_id: {type: string, format: uuid}
@@ -1243,6 +1680,7 @@ components:
           items: {$ref: '#/components/schemas/StepSnapshot'}
           minItems: 0
         spawn_decisions:
+          x-proofestra-status: design_only
           type: array
           items: {$ref: '#/components/schemas/SpawnDecision'}
           minItems: 0
@@ -1271,22 +1709,31 @@ components:
         runtime_policy_version: {type: string, maxLength: 100, minLength: 1}
         catalog_version: {type: string, maxLength: 100, minLength: 1}
         tool_policy: {$ref: '#/components/schemas/ToolPolicy'}
+        native_backends:
+          type: array
+          items: {$ref: '#/components/schemas/NativeBackendFreeze'}
+          minItems: 1
+          description: Present only for a Live run that includes a native CLI agent.
         tool_executions:
+          x-proofestra-status: design_only
           type: array
           items: {$ref: '#/components/schemas/ToolExecution'}
           minItems: 0
           maxItems: 100
         tool_executions_next_cursor:
+          x-proofestra-status: design_only
           type: [string, 'null']
           maxLength: 2048
         external_work_status:
           type: string
           enum: [none, settled, unknown, orphaned]
         extension_refs:
+          x-proofestra-status: design_only
           type: array
           items: {$ref: '#/components/schemas/ExtensionProvenance'}
           minItems: 0
         extension_activations:
+          x-proofestra-status: design_only
           type: array
           items: {$ref: '#/components/schemas/ExtensionActivation'}
           minItems: 0
@@ -1465,7 +1912,52 @@ components:
       - properties:
           status: {$ref: '#/components/schemas/TerminalStatus'}
           finished_at: {type: string, format: date-time}
+    RuntimeEventEnvelope:
+      x-proofestra-status: implemented_v1
+      description: The envelope the v1 server actually emits on /runs/{run_id}/events (SSE `data:` is this JSON; the
+        SSE event name equals `type`). Only the four types below are emitted today; payloads are intentionally small.
+        Anything richer in EventEnvelope is design scope.
+      type: object
+      additionalProperties: false
+      required: [run_id, sequence, type, at, data]
+      properties:
+        run_id: {type: string, format: uuid}
+        sequence: {type: integer, minimum: 1}
+        type: {type: string, enum: [run.created, run.updated, run.terminal, step.updated]}
+        at: {type: string, format: date-time}
+        data: {type: object}
+      allOf:
+      - if: {properties: {type: {const: run.created}}, required: [type]}
+        then:
+          properties:
+            data:
+              type: object
+              required: [status, base_planned_calls]
+              properties:
+                status: {type: string}
+                base_planned_calls: {type: integer, minimum: 1}
+      - if: {properties: {type: {const: step.updated}}, required: [type]}
+        then:
+          properties:
+            data:
+              type: object
+              additionalProperties: false
+              required: [step_id, agent_id, stage, status]
+              properties:
+                step_id: {type: string, format: uuid}
+                agent_id: {type: string, format: uuid}
+                stage: {type: string, enum: [draft, review, synthesis, helper]}
+                status: {$ref: '#/components/schemas/StepStatus'}
+      - if: {properties: {type: {const: run.terminal}}, required: [type]}
+        then:
+          properties:
+            data:
+              type: object
+              required: [status]
+              properties:
+                status: {$ref: '#/components/schemas/RunStatus'}
     EventEnvelope:
+      x-proofestra-status: design_only
       type: object
       additionalProperties: false
       required: [run_id, sequence, type, at, data]
@@ -1657,7 +2149,7 @@ components:
         then:
           properties:
             data: {$ref: '#/components/schemas/ExtensionActivation'}
-      description: Run-scoped durable numeric sequence. Lineage, routes, exact-action approvals and bounded tool
+      description: DESIGN SCOPE (x-proofestra-status design_only); the v1 server emits RuntimeEventEnvelope instead. Run-scoped durable numeric sequence. Lineage, routes, exact-action approvals and bounded tool
         results are typed events. Scope counters to observable harness/operations/jobs; never infer hidden internal
         work. Terminal state stays immutable; separately labeled external reconciliation can append records without
         restarting work. extension.activated is an internal loader decision, not package content, permission or
@@ -1713,12 +2205,16 @@ components:
           properties:
             code:
               type: string
-              enum: [invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress,
-                idempotency_conflict, body_too_large, validation_failed, context_too_large, live_disabled, rate_limited,
-                internal_error, profile_not_configured, delegation_not_supported, capability_unavailable, tool_not_allowed,
-                grant_not_found, approval_conflict, backend_not_ready, unsupported_bounds, runtime_policy_changed]
+              pattern: '^[a-z][a-z0-9_]*$'
+              maxLength: 100
+              description: Open set of stable snake_case codes, not a closed enum. Implemented v1 examples include
+                invalid_request, invalid_cursor, invalid_event_id, unauthorized, forbidden, not_found, run_in_progress,
+                idempotency_conflict, validation_failed, context_too_large, limits_exceeded, live_disabled,
+                backend_not_ready, unsupported_bounds, runtime_policy_changed, attachment_bound, attachment_limit,
+                attachment_removed, attachment_pending, attachment_failed and upload_busy. Design-only codes
+                (capability_unavailable, tool_not_allowed, grant_not_found, approval_conflict) are not produced.
             message: {type: string, maxLength: 500}
-            request_id: {type: string, format: uuid}
+            request_id: {type: string, minLength: 1, maxLength: 100, description: 'Opaque correlation ID (the v1 server emits a per-process sequence such as req-1, not a UUID).'}
             details:
               type: array
               maxItems: 50
@@ -1743,8 +2239,7 @@ components:
     ModelProfile:
       type: object
       additionalProperties: false
-      required: [profile_id, model_id, safe_input_tokens, readiness, delegation_capability, execution_backend_id,
-        execution_controls]
+      required: [profile_id, model_id, safe_input_tokens, readiness, execution_backend_id]
       properties:
         profile_id: {$ref: '#/components/schemas/ProfileId'}
         model_id:
@@ -1756,10 +2251,34 @@ components:
           minimum: 1
         readiness:
           type: string
-          enum: [configured, missing]
-        delegation_capability: {$ref: '#/components/schemas/DelegationCapability'}
+          enum: [configured, missing, missing_auth, disabled, unsupported, unverified]
+          description: Configuration/admission state only. `unverified` and `disabled` are reported for a native CLI
+            profile whose backend is not admitted (see NativeBackendStatus); such a profile is refused at run creation
+            with 422 backend_not_ready.
+        delegation_capability:
+          allOf: [{$ref: '#/components/schemas/DelegationCapability'}]
+          description: Design scope. Not returned by the v1 server, which rejects delegation at admission.
         execution_backend_id: {$ref: '#/components/schemas/BackendId'}
-        execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
+        execution_controls:
+          allOf: [{$ref: '#/components/schemas/ExecutionControls'}]
+          description: Design scope. Not returned by the v1 server, which implements no tool execution or delegation.
+        provider:
+          allOf: [{$ref: '#/components/schemas/Provider'}]
+          description: Returned by the v1 server (optional in the design examples).
+        label: {type: string, maxLength: 100, minLength: 1}
+        max_output_tokens: {type: integer, minimum: 1}
+        api_shape:
+          type: string
+          enum: [mock, openai_chat_completions, anthropic_messages_v1, gemini_generate_content, codex_exec_cli,
+            antigravity_cli]
+          description: Wire/dispatch shape. `codex_exec_cli` and `antigravity_cli` are native CLI shapes bound to the
+            reserved backend ids `codex-local-cli` and `antigravity-local-cli`; no other shape may use those ids and
+            neither native shape may use another backend id (rejected at catalog load).
+        capabilities:
+          type: object
+          additionalProperties: true
+          description: Optional per-profile native-attachment capability override (image/pdf/audio/video flags and
+            caps), clamped to provider defaults. A native CLI profile is always text-only.
       description: Server-configured profile and backend/capacity/control metadata. Repeated provider/model/profile
         agents remain distinct. Readiness is configuration only; keys and raw auth state never appear. Missing capacities/control
         mappings make a demanding route ineligible.
@@ -1808,9 +2327,7 @@ components:
     InvocationSnapshot:
       type: object
       additionalProperties: false
-      required: [invocation_id, kind, retry_of_invocation_id, resumes_after_invocation_id, status, usage, failure,
-        started_at, finished_at, execution_backend_id, external_status, native_job_id, bounds_mode, execution_controls,
-        deadline_at]
+      required: [invocation_id, kind, retry_of_invocation_id, resumes_after_invocation_id, status, usage, failure, started_at, finished_at, execution_backend_id, deadline_at]
       properties:
         invocation_id: {type: string, format: uuid}
         kind:
@@ -1837,14 +2354,22 @@ components:
           type: [string, 'null']
           format: uuid
         execution_backend_id: {$ref: '#/components/schemas/BackendId'}
-        external_status: {$ref: '#/components/schemas/ExternalWorkStatus'}
+        external_status:
+          allOf: [{$ref: '#/components/schemas/ExternalWorkStatus'}]
+          x-proofestra-status: design_only
+          description: Design scope. Not returned by the v1 server.
         native_job_id:
+          x-proofestra-status: design_only
           type: [string, 'null']
           maxLength: 200
         bounds_mode:
+          x-proofestra-status: design_only
           type: string
           enum: [strict, bounded_job]
-        execution_controls: {$ref: '#/components/schemas/ExecutionControls'}
+        execution_controls:
+          allOf: [{$ref: '#/components/schemas/ExecutionControls'}]
+          x-proofestra-status: design_only
+          description: Design scope. Not returned by the v1 server.
         deadline_at: {type: string, format: date-time}
       description: One reserved/dispatched adapter call. A tool-request response can complete an invocation while
         the step waits; a continuation is a new counted call. Schedule one logical continuation per parent invocation
@@ -1973,7 +2498,9 @@ components:
     ArgumentDigest: {type: string, maxLength: 71, minLength: 71, pattern: '^sha256:[0-9a-f]{64}$'}
     BackendKind:
       type: string
-      enum: [provider_api, agent_sdk_cli, mcp_local, hosted_agent]
+      enum: [provider_api, native_cli, agent_sdk_cli, mcp_local, hosted_agent]
+      description: '`native_cli` is implemented (Codex through its own vendor-managed login; fail-closed, currently
+        unverified). `agent_sdk_cli`, `mcp_local` and `hosted_agent` remain design scope and are not implemented.'
     ExecutionBackend:
       type: object
       additionalProperties: false
@@ -2353,7 +2880,12 @@ components:
         expiration/revocation and required scope before each dispatch. A broader configuration change requires a
         new run. required_controls is combined with mandatory deployment controls, not a way to remove them. Deadline
         enforcement scope and remote-cancellation limitations must be disclosed by backend metadata; a local supervisor
-        timeout does not prove remote work stopped.
+        timeout does not prove remote work stopped. Implemented native CLI backends (api shapes codex_exec_cli and
+        antigravity_cli) have opaque internals and no enforceable output-token ceiling, so a Live run that includes one
+        is admitted only with bounds_mode=bounded_job, allow_unknown_internal_usage=true and required_controls limited
+        to deadline, context_isolation and harness_invocations; otherwise creation fails 422 unsupported_bounds (a
+        backend that is not admitted at all fails first, 422 backend_not_ready). Output the CLI reports above the
+        requested ceiling fails that step instead of completing within budget.
       allOf:
       - if:
           properties:
@@ -2418,14 +2950,19 @@ components:
           required: [quick, team]
           properties:
             quick: {type: string, const: 'off'}
-            team: {type: string, const: auto}
+            team:
+              type: string
+              enum: ['off', auto]
+              description: The v1 server returns off for both (it rejects tool_policy.mode=auto). auto is the design default.
         default_delegation:
           type: object
           additionalProperties: false
           required: [quick, team]
           properties:
             quick: {type: boolean, const: false}
-            team: {type: boolean, const: true}
+            team:
+              type: boolean
+              description: The v1 server returns false for both (it rejects delegation.enabled=true). true is the design default.
         review_topologies:
           type: array
           items:
@@ -2437,6 +2974,13 @@ components:
           type: array
           items: {type: string, minLength: 1, maxLength: 100}
           uniqueItems: true
+        live_enabled:
+          type: boolean
+          description: Implemented v1. Whether this server process has Live provider calls enabled (a separate per-request opt-in is still required).
+        implementation_notes:
+          type: array
+          items: {type: string, maxLength: 500}
+          description: Implemented v1. Human-readable statements of what the v1 runtime does not implement.
       description: Read-only effective server policy. Future topology/ceiling changes need implementation validation;
         clients cannot increase ceilings by sending a policy object. One global active run remains the personal-deployment
         default. Effective requested controls include the union of mandatory server controls and user-requested

@@ -1,0 +1,31 @@
+name: Proofestra quality
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      PROOFESTRA_LIVE_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install bounded parser tools
+        run: brew install poppler ffmpeg
+      - run: npm ci
+      - run: npm run check:parsers
+      - run: npm run check
+      - name: Save measured coverage (including failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 7

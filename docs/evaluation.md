@@ -4,6 +4,19 @@ Status: proposed method; no benchmark has run and no quality improvement has bee
 measured. This plan tests whether review, helpers, and automatic tools justify
 their work, latency, cost, and data exposure. Agreement is not ground truth.
 
+> **EV-01 clarification for the current v1 (2026-10-21):** this implementation
+> ships NO retrieval, support-checker, URL fetcher, or evidence verifier.
+> Every URL, citation, quotation, statistic, name, or date produced by an
+> agent in a v1 run is **unverified**, whether or not the agent appeared to
+> cite a source. The run has no mechanism that could have fetched the cited
+> page, so claiming the citation as "verified" would be dishonest. Another
+> draft agreeing is not external verification either — it reflects shared
+> training or shared prompt wording. The v1 synthesis prompt
+> (`SYNTH_INSTRUCTIONS` in `src/core/coordinator.ts`) enforces this by
+> requiring the sentence "no external verification in this run" alongside
+> every substantive claim and by explicitly forbidding peer agreement from
+> being presented as evidence.
+
 ## Initial set
 
 Start with 18 small, versioned, text-only cases: three from each category below.

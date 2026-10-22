@@ -1,0 +1,227 @@
+{
+  "synthetic_only": true,
+  "generator": "make-office-content-fixtures.py (external to this repository)",
+  "office_apps_or_external_links_executed": false,
+  "files": [
+    {
+      "file": "proofestra-content.docx",
+      "format": "docx",
+      "byte_size": 2197,
+      "sha256": "6fb4820d39a2dc0873b87ab9fbda3aba66c76e98403667406bd42bbfbbc3f390",
+      "required_markers": [
+        "PROOFESTRA_DOCX_BODY_ORCHID_42",
+        "สวัสดี เอกสารทดสอบภาษาไทย",
+        "PROOFESTRA_DOCX_TABLE_CELL"
+      ],
+      "optional_markers": [
+        "PROOFESTRA_DOCX_TAB_LEFT",
+        "PROOFESTRA_DOCX_TAB_RIGHT",
+        "PROOFESTRA_DOCX_AFTER_BREAK",
+        "PROOFESTRA_VISIBLE_HYPERLINK_TEXT",
+        "PROOFESTRA_DOCX_HEADER_OPTIONAL"
+      ],
+      "omitted_or_not_analyzed": [
+        "embedded blue image pixels",
+        "external relationship destination; must never fetch"
+      ],
+      "expected_extraction": "text_extracted",
+      "notes": [
+        "Header is optional if the implementation accurately labels body-only extraction.",
+        "No macros or executable fields."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [],
+        "office_application_opened": false
+      }
+    },
+    {
+      "file": "namespace-variant.docx",
+      "format": "docx",
+      "byte_size": 2202,
+      "sha256": "6d434c53c3323132b8ca18e726e54255352d25465afdab1c90ae46d8b88280e9",
+      "required_markers": [
+        "PROOFESTRA_DOCX_BODY_ORCHID_42",
+        "สวัสดี เอกสารทดสอบภาษาไทย"
+      ],
+      "optional_markers": [],
+      "omitted_or_not_analyzed": [],
+      "expected_extraction": "text_extracted",
+      "notes": [
+        "Uses doc: instead of w: for the exact same WordprocessingML namespace."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [],
+        "office_application_opened": false
+      }
+    },
+    {
+      "file": "entity-declaration.docx",
+      "format": "docx",
+      "byte_size": 2254,
+      "sha256": "37a4f0b2bb1a6a74bcb21844c6f8c1aeafc17adae9f243a916f2ebff0614b05b",
+      "required_markers": [],
+      "optional_markers": [],
+      "omitted_or_not_analyzed": [
+        "all document content if DTD/entity declarations are rejected"
+      ],
+      "expected_extraction": "rejected_or_unsupported",
+      "notes": [
+        "Small internal entity; parser should reject declarations rather than resolve it."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [
+          "word/document.xml"
+        ],
+        "office_application_opened": false
+      },
+      "forbidden_markers": [
+        "PROOFESTRA_DOCX_ENTITY_MUST_NOT_RESOLVE"
+      ]
+    },
+    {
+      "file": "external-entity.docx",
+      "format": "docx",
+      "byte_size": 2256,
+      "sha256": "0ba1c77f758c265ace976c6904e0d1fadda4f9fbcaf7f5ff52330faf07f34708",
+      "required_markers": [],
+      "optional_markers": [],
+      "omitted_or_not_analyzed": [
+        "external XML entity; must never fetch or resolve"
+      ],
+      "expected_extraction": "rejected_or_unsupported",
+      "notes": [
+        "Entity refers only to the generated synthetic local sentinel, never a user file or network destination."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [
+          "word/document.xml"
+        ],
+        "office_application_opened": false
+      },
+      "forbidden_markers": [
+        "XXE_SENTINEL_MUST_NOT_APPEAR"
+      ],
+      "synthetic_sentinel": "office/xxe-sentinel.txt (generator-side marker file; not copied into this repository; the entity SYSTEM identifier is the relative name xxe-sentinel.txt and must never be read)"
+    },
+    {
+      "file": "proofestra-content.xlsx",
+      "format": "xlsx",
+      "byte_size": 2959,
+      "sha256": "94cdfb2c3bbe7e08319e821360dad4e7ccc7c3f1aa5ba50a57b65b04b232b467",
+      "required_markers": [
+        "PROOFESTRA_XLSX_SHARED_ORCHID_42",
+        "PROOFESTRA_XLSX_INLINE_TEXT",
+        "สวัสดี ตารางทดสอบภาษาไทย"
+      ],
+      "optional_markers": [
+        "PROOFESTRA_XLSX_CACHED_TOTAL",
+        "PROOFESTRA_XLSX_HIDDEN_SHEET_OPTIONAL",
+        "Apples",
+        "Pears",
+        "5"
+      ],
+      "omitted_or_not_analyzed": [
+        "formula execution or recalculation; formula cached value is 5"
+      ],
+      "expected_extraction": "text_extracted",
+      "notes": [
+        "Only fixed SUM(B2:B3) with a supplied cached value; no external workbook links."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [],
+        "office_application_opened": false
+      }
+    },
+    {
+      "file": "large-sheet.xlsx",
+      "format": "xlsx",
+      "byte_size": 50473,
+      "sha256": "4076d24e6ee5896ba85aa72480e6206f19c69727c6a8bf5dd99fc15994807053",
+      "required_markers": [
+        "PROOFESTRA_XLSX_SHARED_ORCHID_42"
+      ],
+      "optional_markers": [],
+      "omitted_or_not_analyzed": [
+        "PROOFESTRA_XLSX_TAIL_BEYOND_TEXT_LIMIT"
+      ],
+      "expected_extraction": "truncated",
+      "notes": [
+        "1601 unique synthetic content rows; plain text exceeds24000chars, XML remains below1MiB and ZIP ratio below100."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [],
+        "office_application_opened": false
+      }
+    },
+    {
+      "file": "proofestra-content.pptx",
+      "format": "pptx",
+      "byte_size": 6787,
+      "sha256": "c3984d0f8b5b3ea9a2eb2c5f8bfd590245a58b301352ec993efd3365d4ccd704",
+      "required_markers": [
+        "PROOFESTRA_PPTX_SLIDE_ONE_ORCHID_42",
+        "PROOFESTRA_PPTX_SLIDE_TWO_BLUE_17",
+        "สวัสดี สไลด์ทดสอบภาษาไทย"
+      ],
+      "optional_markers": [
+        "PROOFESTRA_PPTX_NOTES_OPTIONAL"
+      ],
+      "omitted_or_not_analyzed": [
+        "embedded image pixels",
+        "speaker notes if slide-body-only extraction is labeled"
+      ],
+      "expected_extraction": "text_extracted",
+      "notes": [
+        "Two slides in declared presentation order; one optional notes part; no macros."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "intentionally_forbidden_xml_parts": [],
+        "office_application_opened": false
+      }
+    },
+    {
+      "file": "proofestra-content.odt",
+      "format": "odt",
+      "byte_size": 1642,
+      "sha256": "4ad8f52ccdc5b156b74e96dd33cd9b6394d7d457e074ff7eca5b934611eb22f7",
+      "required_markers": [
+        "PROOFESTRA_ODT_HEADING_ORCHID_42",
+        "สวัสดี เอกสารโอดีทีภาษาไทย",
+        "PROOFESTRA_ODT_TABLE_CELL"
+      ],
+      "optional_markers": [
+        "PROOFESTRA_ODT_BODY_LEFT",
+        "PROOFESTRA_ODT_BODY_RIGHT",
+        "PROOFESTRA_ODT_AFTER_BREAK",
+        "PROOFESTRA_ODT_LINK_TEXT"
+      ],
+      "omitted_or_not_analyzed": [
+        "embedded blue image pixels",
+        "external hyperlink destination; must never fetch"
+      ],
+      "expected_extraction": "text_extracted",
+      "notes": [
+        "ODF1.2, first mimetype member stored uncompressed."
+      ],
+      "validation": {
+        "zip_crc": "passed",
+        "non_hostile_xml": "well_formed",
+        "office_application_opened": false
+      }
+    }
+  ]
+}
