@@ -12,6 +12,11 @@ design scope: API tools, local agent apps/SDKs/CLIs, MCP/local tools, and hosted
 agent services where supported. Compatibility and delivery remain staged.
 See [tool policy](tools.md), [scaling](scaling.md), and [decisions](decisions.md).
 
+Shared skills/plugins/custom MCP use a [harness-owned extension layer](extensions.md).
+Its function bridge is a proposed way for connected providers to reuse one custom
+server registration; native provider MCP connector restrictions are not the same
+as that broker's capabilities. No native plugin-format parity is assumed.
+
 ## Direct model APIs
 
 | Provider / surface | Documented tool options | Adapter consequence |
@@ -50,6 +55,23 @@ Grounding citations and successful retrieval remain separate from a checked clai
 | Codex SDK / local CLI | Programmatic local agents; non-interactive structured events; app-server interfaces for interactive control | Supported auth, approval bridge, workspace/process scope, cancellation, safe event filtering, and usage coverage. |
 | Claude Agent SDK / Claude Code | Local Claude Code subprocess, tools/MCP, permission hooks, subagents including documented nesting | Exact SDK version and permission ordering, native tree limits, whole-tree usage, interrupt behavior, and supported third-party authentication. |
 | Gemini CLI | Headless events, workspace/shell/web/MCP tools, extensions, configured remote agents, and native subagents | Headless policy, allowed tools, auth, cancellation, usage visibility; native children cannot themselves delegate. |
+
+**Implementation status (2026-10-22).** A fail-closed Codex CLI backend using the
+existing vendor-managed ChatGPT login is implemented and tested against fake
+processes only (DLOG-018, PR-08..PR-13). Against the installed codex-cli 0.163.0
+execution is **unverified/blocked**: `unified_exec` stays enabled under
+`--disable unified_exec`, `apply_patch_tool_type=freeform` and
+`tool_mode=code_mode_only` are model-catalog properties with no per-invocation
+switch, and web-search/MCP effects cannot be observed without an inference
+request. ChatGPT-only authentication is also unproven: dropping inherited API
+variables does not stop a cached API-key login from billing the API, so each job is
+gated on the vendor's `login status` reporting ChatGPT and passes
+`forced_login_method="chatgpt"`, but neither was exercised against the signed-in
+session. No general subscription-to-API credential bridge is planned. Antigravity
+(`agy` 1.1.5) is unverified/disabled: no machine-readable output, tool-deny flags
+or auth/status command in the installed help, the AI-credit overage state is
+unverified, and the vendor FAQ restricts third-party use of the login. ChatGPT or
+Google subscription quota is not API credit and cost is never reported as $0.
 
 For Codex, use [SDK guidance](https://learn.chatgpt.com/docs/codex-sdk),
 [non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode),

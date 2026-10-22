@@ -5,9 +5,47 @@
 *.pem
 *.key
 
+# Defensive: common credential, auth-state, session and database dump names.
+# None of these belong in the repository (there are none today); they only
+# stop an accidental `git add`. Production code, tests, fixtures and user docs
+# are NOT matched. Vendor CLI logins (e.g. a Codex auth file) stay owned by the
+# vendor CLI and must never be copied into this tree.
+auth.json
+.codex/
+credentials.json
+service-account*.json
+token.json
+tokens.json
+cookies.json
+cookies.txt
+storage-state.json
+playwright/.auth/
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.har
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.dump
+
 # Local data, transcripts, and generated files
 data/
+# Smoke-test fixture data directory created by the end-to-end `npm start`
+# verification in docs/logs. Keep this out of version control; do not delete
+# the user's actual data directory (`data/`).
+data-prod/
 logs/
+# Keep project history documents; runtime logs remain ignored.
+!docs/logs/
+!docs/logs/**
 exports/
 coverage/
 dist/

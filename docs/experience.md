@@ -255,6 +255,77 @@ jobs, and unknown internal usage. Cancellation invalidates tool-result callbacks
 as well as all root and child timers. No canceled tool result can resume a parent
 or produce a later final answer.
 
+## Shared skills, plugins, and custom MCP
+
+The Shared extensions catalog makes three kinds of extension explicit:
+
+| Extension | Purpose | Demo scope and provenance |
+| --- | --- | --- |
+| Review brief skill | Workflow instructions, not tool authority | Global enabled binding; `skill.review_brief@demo-v1`; Demo global catalog |
+| Review kit plugin | Bundle referencing a skill and an MCP binding | Workspace enabled binding; `plugin.review_kit`; Demo workspace bundle |
+| Workspace notes custom MCP | Shared server tools through a broker | Global registration `workspace_notes`, workspace binding `workspace.notes_read`; Demo, not connected |
+
+Compatible configured provider adapters can use the same registered custom tool
+through the harness function bridge. The sample's logical name is
+`ext.workspace_notes.lookup`. It is not installed separately into OpenAI,
+Anthropic, and Gemini. The design does not promise universal vendor-native plugin
+imports or that every API/SDK/CLI adapter supports every extension. Unsupported
+bindings remain ineligible until their adapter compatibility and policy are
+validated. This page installs nothing and connects to no MCP server.
+
+Before the first root request in this scenario, the same skill instructions and
+revision metadata are loaded into each root's frozen common context. Activity
+shows per-agent instruction status, origin, revision, branch identity, and tool
+grant status. Skill reads are instruction loads, not extra provider requests or
+observed tool operations. Their text would still contribute to live input-token
+accounting. Provenance metadata identifies a source; it is not proof that its
+instructions are trusted or correct. Neither a skill's text nor a plugin bundle
+can grant authority, enable a disabled binding, install a dependency, or initiate
+authentication.
+
+The custom MCP catalog entry displays `notes-read-demo` as a nonsecret connection
+label only. There is no credential reference, credential value, login, remote
+session, or tested connection. Real credentials and their internal reference IDs
+stay broker-only; neither enters agent context, browser responses, or exports. The model receives the
+relevant authorized function schema, not an unrestricted dump of every installed
+tool. The checkbox for an existing notes-read grant is explicitly a simulation
+control, not the live approval system.
+
+One broker registration serves all root agents, while every request, argument,
+result, and scratch context remains scoped to a distinct root branch. Sharing a
+server or tool name never shares another root's data. Each root requests its own
+note; its continuation references only its own result operation. Peer drafts
+become available to reviewers after the root draft barrier, rather than through
+the shared MCP server. The UI can show all branches to their user without giving
+those branches each other's private inputs.
+
+| Shared extensions sample | Provider API invocations | Observed MCP operations | Skill instruction loads | Added helpers |
+| --- | --- | --- | --- | --- |
+| Three-root Team | 10: 3 starts, 3 continuations, 3 reviews, 1 synthesis | 3 distinct root requests | 3 | 0 |
+| Quick, tools off | 1 | 0 | 1 | 0 |
+| Quick, tools on | 2: start and own-result continuation | 1 | 1 | 0 |
+
+Team's custom-function bridge works with Allow subagents off because no child is
+created. This does not bypass the helper permission required by the separate
+capability-delegation scenario. Quick tools off loads instructions as part of its
+single prompt but dispatches no MCP operation or extra continuation.
+
+Disabling the selected skill, plugin binding, or MCP binding stops this bundle's
+sample without re-enabling anything. A missing scoped notes-read grant pauses
+the exact namespaced lookup, topic, and workspace destination before MCP dispatch;
+loaded instructions and a connection label cannot authorize it. For three roots,
+these blocked examples retain three initial simulated requests but produce no MCP
+operation, continuation, review, or synthesis. Missing scope does not broaden the
+allowed route or select a fallback provider. Revocation and exact argument checks
+still require live server implementation.
+
+All outputs remain simulated and their claim support unverified. Export preserves
+extension references, per-root provenance, isolated operation identifiers, and
+separate counters without secrets. Stop cancels pending broker-result callbacks;
+late results cannot increment counters, resume a root, or produce a final answer.
+The catalog and enabled bindings are tab-memory design controls, not installed or
+persisted extensions.
+
 ## Answers and source status
 
 The main answer has a short recommendation, supporting points, and a material
@@ -284,6 +355,8 @@ outputs, never private reasoning traces.
 | SDK/CLI internals unobservable | Unknown counts stay unknown; live admission unvalidated; strict inner-cap and explicit bounded-job policies differ |
 | Publish without matching task grant | Concrete action, destination, and text displayed; Permission required; nothing sent |
 | Unsupported capability | No approved route; no fallback silently introduced |
+| Disabled shared extension | Selected bundle stops; no binding is re-enabled, installed, or authenticated |
+| Missing shared-tool grant | Exact scoped MCP read paused before dispatch; skill instructions remain non-authoritative |
 | Stop | Root and descendant work canceled; no further calls or final answer |
 | New chat during work | Timers invalidated and current content cleared; old callbacks cannot alter the new chat |
 
@@ -309,7 +382,7 @@ Export deliberately downloads a JSON demo record containing the current message,
 root and child identities, hierarchy, task outputs, call statuses, selected
 synthesizer, source status, and simulation notice. It includes no credentials or
 private reasoning. Canceled runs, skipped synthesis, permission pauses, and
-unsupported-capability stops export no final answer.
+unsupported-capability and blocked-extension stops export no final answer.
 
 Provider setup explains the proposed live configuration: user keys are supplied
 through server environment variables and never exposed to the browser. Before a

@@ -11,6 +11,9 @@ all tool surfaces: API tools, local agent apps/SDKs/CLIs, functions/MCP/local to
 and supported hosted agent services. Compatibility and activation remain staged.
 See [requirements](requirements.md), [tools](tools.md), [agent policy](agents.md),
 [scaling](scaling.md), and [decisions](decisions.md). Paid calls remain deferred.
+Shared skills, plugins and custom MCP are confirmed design scope. Their
+[extension policy](extensions.md) uses one global/workspace harness catalog across
+connected providers, with compatibility and grants checked per route.
 
 ## 1. First runnable slice: deterministic mock team
 
@@ -18,6 +21,7 @@ Build the smallest complete experience before choosing a broad integration surfa
 
 - One local chat screen with Quick/Team, distinct agent/profile/backend identities and repeated providers; six roots is a personal/demo default, not a product ceiling.
 - Extensible provider/tool/backend catalogs with readiness, validation versions, lazy bounded top-K selection, and simulated search/code/files/MCP/native jobs.
+- Mock shared extension catalog: namespaced global/workspace skills, progressive resources, trusted manifests, immutable versions/digests and central secret references.
 - Deterministic mock adapters that produce independent first responses, a reviewer finding, and a synthesized result.
 - Harness-managed helpers: Quick OFF/Team ON, inherited or preapproved profiles/backends, scoped tool grants, and visible parent/child provenance.
 - Automatic compatible current-profile tool use; routing that creates a managed helper requires helpers enabled. Tools ON/helpers OFF cannot create a managed child.
@@ -40,11 +44,17 @@ observable work units, unknown native usage, stop limitations, strict-policy nat
 rejection, and catalogs/configurable caps beyond the demo's defaults. Test helper-
 disabled tool routing, grant revocation, exact-action approval scope, and effective
 provider concurrency rather than hardcoding the personal default.
+Also cover A21–A25: common extension IDs/collision-checked wire aliases, no import
+execution or permission grant, helper-policy routing, branch-state isolation,
+version snapshots, disable/revocation and safe provenance. No real plugin/skill
+installation or MCP connection is required for these fixtures.
 
 ## 2. Core API adapters and validated API tools
 
 - Add OpenAI, Anthropic, and Gemini adapters together. Support multiple explicit model profiles per provider and harness-managed structured delegation requests; validate each against its current official contract.
 - Add capability-driven provider-managed tools and client-executed functions/local MCP in stages. Provider IDs remain extensible; additional plugins/OpenAI-compatible adapters stay candidates until tested.
+- Add shared MCP brokering with supervised local STDIO and supported negotiated HTTP. Expose one namespaced catalog through model adapters; incapable profiles need an already approved enabled helper or a visible unsupported result. Shared registration must not share root-draft state.
+- Validate trusted manifest imports and progressive skill loading once at the harness level, not separate per-vendor installs. Scripts execute only as scoped actions; updates cannot hot-swap active versions, and disabled/superseded versions need explicit retained authorization before dispatch.
 - Add explicit credential configuration and disclose the content sent to each provider, including cross-provider review content.
 - Keep real calls disabled until configured. Preserve mock mode for development and tests without paid requests.
 - Normalize streaming or completed responses, provider errors, deadlines, and available usage information.
@@ -63,6 +73,7 @@ available and label estimates. Default tests and this design phase require no pa
 
 - Register native execution separately from provider/model identity. Pin backend
   versions and test structured progress, approved auth, scope, deadlines, stop and usage.
+- Add vendor plugin/skill format importers only where mapped and tested; the shared manifest does not promise native vendor-plugin or exclusive hosted-tool parity.
 - Use a ready native tool when supported; otherwise route through an already
   approved capable backend/helper, or report unsupported. No silent installation,
   authentication, session-token scraping, blanket CLI approval, or root replacement.

@@ -28,12 +28,21 @@ agent apps/SDKs/CLIs, functions/MCP/local executors, and hosted agent services w
 supported. Adding an adapter is not a claim that its account access, versions,
 or capabilities have been validated. Activate integrations in tested stages.
 
+Agent skills, plugin bundles, and custom MCP servers belong to a shared harness
+catalog. Register once, then expose compatible contributions through each connected
+provider's adapter. Skills load scoped instructions/resources; scripts and tools
+still use the broker and grants. Provider-specific native installation is optional,
+not a prerequisite for shared use. See [shared extensions](extensions.md).
+
 ## Tool registry
 
 Each registration records tool/capability IDs, provider and backend, supported
 profiles/models/transports, schema version, execution location, credentials
 reference, permitted resource/egress scope, readiness, permission hooks, usage
 visibility, enforceable limits, and documentation/compatibility evidence.
+Shared contributions also record extension registration/version/digest, namespace,
+workspace/global binding, and per-profile projection support. Provider wire aliases
+map back to stable logical IDs; display names cannot disambiguate two servers.
 
 Readiness distinguishes documented, configured, authenticated where checked,
 integration-tested, unavailable, and unsupported. Never show a documented feature
@@ -125,6 +134,12 @@ Normalize useful outputs without exposing private reasoning or raw secret-bearin
 Native delegation capabilities differ. For example, documented Gemini CLI children
 cannot themselves delegate. The harness can provide its own permitted nesting or
 report that native route's limitation; it must not claim uniform native recursion.
+
+The harness MCP broker can expose a custom server to model adapters through
+functions without relying on each provider's native MCP connector. Pin supported
+protocol/transport versions. Shared connections must preserve per-branch tool state
+and draft isolation; shared credentials never imply access to peer scratch results.
+Extensions cannot silently mix versions or override revocation, grants, or helpers-off.
 
 ## Accounting and cancellation
 

@@ -23,6 +23,11 @@ metadata with a version/refresh policy; a cached document is not proof of curren
 account access or live model availability. Refreshing remote catalogs follows
 the configured destination policy and is not a billable inference at startup.
 
+The same catalog covers [shared skills, plugins, and custom MCP](extensions.md).
+Bound skill-resource reads, server discovery pagination, connection/worker pools,
+and per-branch broker state. Reusing a registration does not authorize unlimited
+server connections or sharing mutable draft state across independent roots.
+
 ## Defaults are not product ceilings
 
 The earlier six-root, twelve-node, six-helper, depth-two, 32-request, and concurrency
